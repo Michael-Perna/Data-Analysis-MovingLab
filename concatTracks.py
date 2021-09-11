@@ -17,7 +17,7 @@ from geopandas.tools import sjoin
 
 class Concat():
     def __init__(self, data_dir, receiver):
-        self.zone_name = '_zone2'
+        self.zone_name = ''
         self.main_dir = './Analyse/DataBase'
         self.save_dir = './res/data/'
         self.loop_shp = '.\\maps\\railways\\loops.shp'
@@ -151,15 +151,9 @@ class Concat():
 
 
 # Call the interface class
-# app = gui.Interface()
-# app.title('Concatenate file by day')
-# app.mainloop()
-# data_dir, receiver = app.output()
-data_dir = '.\\DataBase\\2021\\'
-# data_dir = 'D:\\2021\\'
-receiver1 = 'ublox'
-receiver2 = 'sapcorda'
-receiver3 = 'NetR9'
-Concat(data_dir, receiver1).scanDir()
-Concat(data_dir, receiver2).scanDir()
-Concat(data_dir, receiver3).scanDir()
+app = gui.Interface()
+app.title('Concatenate file by day')
+app.mainloop()
+data_dir, receiver = app.output()
+
+Concat(data_dir, receiver).scanDir()
