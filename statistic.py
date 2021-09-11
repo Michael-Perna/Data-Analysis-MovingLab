@@ -22,16 +22,7 @@ import shapefile
 from tqdm import tqdm
 import matplotlib.dates as mdates
 from matplotlib.dates import DateFormatter
-'''
-apri results file
-media distanca
-std deviation distanca
 
-percentuale di fissi
-percentuale di fissi > 10 cm
-
-time to fix = media et standart deviations
-'''
 
 def _pdf_cdf(df):
     # Drop epochs with no positions or inf position
@@ -336,17 +327,7 @@ class Statistic:
         if self.do_integrity:
             print('Estimating Integrity')
             integrity = self.posInteg(df_rf)
-            # kSigma Integrity diagram
-            # hpl = df_rf.HDOP *0.03
-            # hpe = df_rf.dist
 
-            # # Plot Standfort Integrity Diagram
-            # fig, ax = plt.subplots()
-            # ax.scatter(hpe, hpl)
-
-            # # Plot Standfort Integrity Diagram
-            # fig, ax = plt.subplots()
-            # ax.scatter(hpe, hpl)
 
         else:
             integrity = []
@@ -491,5 +472,3 @@ if False:
 
 
 
-# ANALYSY
-# integrity['dist'][[integrity['dist']>2]]
