@@ -100,10 +100,6 @@ class AnalysisTheo:
         self.do_plot1 = do_plot1
         self.do_plot2 = do_plot2
 
-    # class Track:
-    #     def __init__(self, df1_old,df2_old, mean_old, std_old, delta_old, timedelta_old,
-    #                  df,df2, mean, std, delta, timedelta):
-
 
     def timeorder(self, df1, df2):
 
@@ -255,7 +251,7 @@ class AnalysisTheo2:
 
 
 # Variables decleration utcrcf3339 and distance from the reference
-base = './data/Geneva_Théodolites/20210820_livraison/'
+base = './data/'
 shpFilePath = '.\\maps\\railways\\foward_track.shp'
 
 # Get
