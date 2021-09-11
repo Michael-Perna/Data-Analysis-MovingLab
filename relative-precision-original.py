@@ -10,15 +10,12 @@ warnings.simplefilter(action='ignore', category=FutureWarning)
 import pandas as pd
 import geopandas as gpd
 import math
-
+import sys
 sys.path.append('.\\lib\\geolib-master')
 import swiss_projection
 import os
 import lib.gui_precision as gui
 from tqdm import tqdm
-
-
-
 
 # Shift CHTRF95 – ITRF2014 par mois
 drift = [['2020-12-31',0.492,-0.509,-0.382],
@@ -50,6 +47,10 @@ class SplitTrack:
         self.filename = filename
         self.start = False
         self.stop = False
+
+        # Get rails shapefile
+        self.rail_back = '.\\maps\\railways\\backward_track_Adjusted.shp'
+        self.rail_forth ='.\\maps\\railways\\foward_track_Adjusted.shp'
         # Get distance form rail and save each tracks
         root, tail = os.path.split(self.filename)
         self.head, self.ext = os.path.splitext(tail)
@@ -121,27 +122,14 @@ class SplitTrack:
             return 'problem'
         return track
 
-    def main(self):
-
-        # Importation of NMEA as Dataframe
-        timeseries = NmeaDf(self.filename)
-        print('Data frame is uploading: ', self.filename)
-        df_full, valid = timeseries.getDataFrame()
-
-        # Drop rows where there is no coordinates (No fix)
-        # df_b= df.dropna(subset=['lat', 'lon']).reset_index(drop=True)
-        df = df_full.dropna(subset=['lat', 'lon']).reset_index(drop=False)
-
-        # Convert in degree (nmea format)
-        df.loc[:,'lon'] = df.loc[:,'lon'].apply(self.degmin2deg)
-        df.loc[:,'lat'] = df.loc[:,'lat'].apply(self.degmin2deg)
-
-        # Dataframe to matrix
-        lon =  pd.DataFrame(df['lon']).to_numpy()
-        lat =  pd.DataFrame(df['lat']).to_numpy()
-        alt =  pd.DataFrame(df['alt']).to_numpy()
-
-        # ========= Change Projection =========
+            # ========= Change Projection =========
+        if 'sapcorda' in self.filename:
+            # Converstion from itrf14 to lv95
+            # Progress bar
+            loop = tqdm(total = len(alt) ,
+                        desc='Coordinates transformation ..',
+                        position =0, leave=False)
+    def projection(self, df, df_full, lon, lat, alt):
         if 'sapcorda' in self.filename:
             # Converstion from itrf14 to lv95
             # Progress bar
@@ -171,6 +159,8 @@ class SplitTrack:
                 # Progress bar: loop.set_description('i = %d', i )
                 loop.update(1)
             loop.close()
+            return df_full
+
         else:
             # Converstion to lv95
             # Progress bar
@@ -191,15 +181,9 @@ class SplitTrack:
                 # Progress bar:
                 loop.update(1)
             loop.close()
+        return df_full
 
-        # ========= Split Track =========
-        # Dataframe to matrix
-        df_full['timestamp'] = pd.to_datetime(df_full['timestamp'],
-                                              format='%Y-%m-%dT%H:%M:%SZ')
-
-        lon =  pd.DataFrame(df_full['lon']).to_numpy()
-        lat =  pd.DataFrame(df_full['lat']).to_numpy()
-
+    def split_track(self,df_full, lon, lat):
         # Progress bar
         loop = tqdm(total = len(lon)-4 , position =0,
                         desc="Dividing full track ..")
@@ -246,18 +230,12 @@ class SplitTrack:
             # Progress bar:
             loop.update(1)
         loop.close()
+        return track_index
 
-        # ========= Mesure distance to Rail =========
-
-
-        # Progress bar
-        loop = tqdm(total = 100 , position =0, desc='Calculating distances')
-
+    def get_distance_and_save(self, track_index,df_full,loop ):
         # Load rails als shapefile
-        # rail_back = gpd.read_file('.\\maps\\railways\\backward_track.shp')
-        # rail_forth = gpd.read_file('.\\maps\\railways\\foward_track.shp')
-        rail_back = gpd.read_file('.\\maps\\railways\\backward_track_Adjusted.shp')
-        rail_forth = gpd.read_file('.\\maps\\railways\\foward_track_Adjusted.shp')
+        rail_back = gpd.read_file(self.rail_forth)
+        rail_forth = gpd.read_file(self.rail_back)
         # if the directory does not exist it create it
         folder_name = self.head  +  '/tracks'
         if not os.path.isdir(folder_name):
@@ -323,6 +301,55 @@ class SplitTrack:
 
             loop.update(1)
         loop.close()
+
+
+    def main(self):
+
+        # Importation of NMEA as Dataframe
+        timeseries = NmeaDf(self.filename)
+        print('Data frame is uploading: ', self.filename)
+        df_full, valid = timeseries.getDataFrame()
+
+
+        # ========================= Change Projection =========================
+        # Drop rows where there is no coordinates (No fix)
+        # df_b= df.dropna(subset=['lat', 'lon']).reset_index(drop=True)
+        df = df_full.dropna(subset=['lat', 'lon']).reset_index(drop=False)
+
+        # Convert in degree (nmea format)
+        df.loc[:,'lon'] = df.loc[:,'lon'].apply(self.degmin2deg)
+        df.loc[:,'lat'] = df.loc[:,'lat'].apply(self.degmin2deg)
+
+        # Dataframe to matrix
+        lon =  pd.DataFrame(df['lon']).to_numpy()
+        lat =  pd.DataFrame(df['lat']).to_numpy()
+        alt =  pd.DataFrame(df['alt']).to_numpy()
+
+        df_full = self.projection(df, df_full, lon, lat, alt)
+
+         # ========================= Split Track ===============================
+        # Dataframe to matrix
+        df_full['timestamp'] = pd.to_datetime(df_full['timestamp'],
+                                              format='%Y-%m-%dT%H:%M:%SZ')
+
+        lon =  pd.DataFrame(df_full['lon']).to_numpy()
+        lat =  pd.DataFrame(df_full['lat']).to_numpy()
+
+
+        track_index = self.split_track(df_full, lon,lat)
+
+
+        # ===================== Mesure distance to Rail =======================
+        # Progress bar
+        loop = tqdm(total = 100 , position =0, desc='Calculating distances')
+
+        # Remove empty line from track_index
+        mask = np.any(np.isnan(track_index), axis=1)
+        track_index = track_index[~mask]
+        track_index = track_index.astype(int)
+
+        self.get_distance_and_save(track_index,df_full,loop)
+
 
         # ========= Save as CSV =========
         # save the entire dataframe as a csv file
