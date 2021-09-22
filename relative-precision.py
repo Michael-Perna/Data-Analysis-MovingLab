@@ -5,6 +5,7 @@
 # Module importation
 from lib.import_df import NmeaDf
 import numpy as np
+from numpy.linalg import norm
 import warnings
 warnings.simplefilter(action='ignore', category=FutureWarning)
 import pandas as pd
@@ -35,7 +36,7 @@ drift = [['2020-12-31',0.492,-0.509,-0.382],
 # Not efficient Added in september
 drift = pd.DataFrame(drift, columns = ['epoch', 'dx', 'dy', 'dz'])
 drift.epoch = pd.to_datetime(drift.epoch, format='%Y-%m-%d')
-drift.t = drift.epoch -drift.epoch[0]
+drift['t'] = drift.epoch - drift.epoch[0]
 tp = drift.t.dt.days.astype(int).to_numpy()
 
 # In[62]:
@@ -91,15 +92,82 @@ class SplitTrack:
                 or self.is_inbox(x,y,box3) or self.is_inbox(x,y,box4)
                 # or self.is_inbox(x,y,box5)
 
-    def distance_pt2shpline(self, point, polyline):
+    def angle_Eaxis_dist(self, pproj, point):
+        n1 = np.array([1, 0])
+        x2 = point.coords[0][0] - pproj.coords[0][0]
+        y2 = point.coords[0][1] - pproj.coords[0][1]
+        d =  np.array([x2, y2])
+        n2 = d / norm(d)
+
+        angle = np.arctan(np.dot(n1,n2)/(norm(n1)*norm(n2)))
+
+        return np.degrees(angle)
+
+    def projectionOnLateralTramAxe(self, stdMajor, stdMinor, orient, point, pproj):
+        angle_Eaxis = self.angle_Eaxis_dist(pproj, point)
+
+        '''get the orientation of the major axis on the"local Tram" Frame :
+            the orientation of the semi-major axis of error ellipse
+            is given in degrees from true north and has values in the range
+            [0,180] '''
+
+        new_orient = orient + angle_Eaxis - 90
+        stdMajorTramAxe = abs(stdMajor*np.cos(np.radians(new_orient)))
+        stdMinorTramAxe = abs(stdMinor*np.sin(np.radians(new_orient)))
+
+        return stdMajorTramAxe, stdMinorTramAxe
+
+    def errors(self, stdMajor, stdMinor, orient, point, polyline):
         # Distance minimal entre le point et la linge par itératio
         # C'est pas gönial car je teste toute les distances possible
-        d = 90000
+
+        ''' Distance "d" of the point from the polyline (rails) and get also the
+        point projection "pp" on the polyline '''
+        dist = 90000
         for line in polyline['geometry']:
             d_new = line.distance(point)
-            if d_new < d:
-                d = d_new
-        return d
+            pp_new = line.project(point)
+            if d_new < dist:
+                dist = d_new
+                pp = pp_new
+        pp = line.interpolate(pp)
+
+
+        ''' Projection of the standard deviation of the major and minor axis
+        of the GNSS point onto the axis with same norm has dist (calcued has
+        dist = point - pp)'''
+        Sax, Sbx = self.projectionOnLateralTramAxe(stdMajor, stdMinor, orient,
+                                                 point, pp)
+
+        ''' Change scale from meter to centimeters and round to mm'''
+        dist = round(dist, 3)*100
+        Sax = Sax.round(decimals=3)*100
+        Sbx = Sbx.round(decimals=3)*100
+
+        ''' Standirize the error ("dist") by the standart deviation on the same
+        orientation of dist given computed from the receiver std major and
+        minor axis (Qxx)'''
+        Qd = np.sqrt(Sax**2 + Sbx**2)
+        Qd = Qd.round(1)    # round to mm
+
+        ''' This if is made to avoid uncontroled  change in the err unit if Qd
+        is under 1 cm '''
+        if Qd >= 1:
+            err = dist / Qd
+        elif Qd<1 : # si plus petit que l'ordre du centimütre
+            err = (dist / Qd)/10
+        elif np.isnan(Qd):
+            err = dist
+        else:
+            print('Houston err in errors() has a problem', Qd)
+
+        ''' Round err to mm (is already expressed in cm) '''
+        err = round(err, 1)
+
+        # Get the great value between Sax and Sbx to used in an integrity test
+        Smax = max(Sax, Sbx)
+
+        return dist, err, pp, Qd, Smax
 
     def classify_track(self, df):
         # remove nan position
@@ -129,6 +197,7 @@ class SplitTrack:
             loop = tqdm(total = len(alt) ,
                         desc='Coordinates transformation ..',
                         position =0, leave=False)
+
     def projection(self, df, df_full, lon, lat, alt):
         if 'sapcorda' in self.filename:
             # Converstion from itrf14 to lv95
@@ -259,22 +328,62 @@ class SplitTrack:
                 gpd.GeoDataFrame(df2,
                                  geometry=gpd.points_from_xy(df2.lon, df2.lat))
 
-                # Mesure distance from the rail
+                # Initialize loop variable
                 dist = [None]*len(df2['geometry'])
+                pproj = [None]*len(df2['geometry'])
+                err = [None]*len(df2['geometry'])
+                Qerr = [None]*len(df2['geometry'])
+                Smax = [None]*len(df2['geometry'])
+
+                ''' Get information about the GNSS mesure errors
+                        "dist" :  orthogonal distance between point and rail
+                                  which is the absolute errors of the GNSS
+                                  point
+
+                        "pproj":  projection of the GNSS point onto the rail
+                                  line
+
+                        "err":    standarized absolute errors.
+                                  err = dist /sqrt(Sax^2+Sbx^2)
+
+                                  where Sax is the standard deviation of the
+                                  major axis projected onto the an axis with
+                                  share the same norm as "dist". Sbx is the
+                                  respective projected standard deviation of
+                                  the minor axis
+
+                        "Qerr":   Is the greater values between Sax and Sbx '''
+
                 if track_type == 'foward':
                     for index, row in df2.iterrows():
                         if not math.isnan(row['geometry'].x) \
                             or not math.isnan(row['geometry'].x):
-                            dist[index] = self.distance_pt2shpline(
-                                row['geometry'], rail_forth)
+                            dist[index], err[index], pproj[index], \
+                            Qerr[index], Smax[index] \
+                                = self.errors(row['stdMajor'],
+                                              row['stdMinor'], row['orient'],
+                                              row['geometry'], rail_forth)
                     df2['dist'] = dist
+                    df2['pproj'] = pproj
+                    df2['err'] = err
+                    df2['Qerr'] = Qerr
+                    df2['Smax'] = Smax
+
                 elif track_type == 'backward':
                     for index, row in df2.iterrows():
                         if not math.isnan(row['geometry'].x) \
                             or not math.isnan(row['geometry'].x):
-                            dist[index] = self.distance_pt2shpline(
-                                row['geometry'], rail_back)
+                            dist[index], err[index],pproj[index], \
+                            Qerr[index], Smax[index] = \
+                                self.errors(row['stdMajor'],
+                                            row['stdMinor'],row['orient'],
+                                            row['geometry'], rail_back)
                     df2['dist'] = dist
+                    df2['pproj'] = pproj
+                    df2['err'] = err
+                    df2['Qerr'] = Qerr
+                    df2['Smax'] = Smax
+
                 elif track_type == 'too small':
                     continue
                 else:
