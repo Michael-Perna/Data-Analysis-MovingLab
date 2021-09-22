@@ -205,7 +205,11 @@ header2 = ['timestamp',
                 'stdMinor',
                 'orient',
                 'geometry',
-                'dist']
+                'dist',
+                'pproj',
+                'err',
+                'Sytram',
+                'Smax']
 
 types2 = {'timestamp':str,
             'lon':float,
@@ -232,7 +236,11 @@ types2 = {'timestamp':str,
             'stdMinor':float,
             'orient':float,
             'geometry':float,
-            'dist':float}
+            'dist':float,
+            'pproj':float,
+            'err':float,
+            'Sytram':float,
+            'Smax':float}
 
 class NmeaDf:
     def __init__(self, filename):
