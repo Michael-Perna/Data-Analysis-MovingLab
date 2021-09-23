@@ -153,7 +153,7 @@ header1 = ['timestamp',
             'stdMinor',
             'orient']
 
-types1 = {'timestamp':str,
+types1 = {  'timestamp':str,
             'lon':float,
             'stdLong':float,
             'lat':float,
