@@ -118,7 +118,7 @@ class SplitTrack:
         stdMajorTramAxe = abs(stdMajor*np.cos(np.radians(new_orient)))
         stdMinorTramAxe = abs(stdMinor*np.sin(np.radians(new_orient)))
 
-        return stdMajorTramAxe, stdMinorTramAxe
+        return stdMajorTramAxe, stdMinorTramAxe, angle_Eaxis
 
     def errors(self, stdMajor, stdMinor, orient, point, polyline, df):
         # Distance minimal entre le point et la linge par itératio
@@ -139,7 +139,7 @@ class SplitTrack:
         ''' Projection of the standard deviation of the major and minor axis
         of the GNSS point onto the axis with same norm has dist (calcued has
         dist = point - pp)'''
-        Sax, Sbx = self.projectionOnLateralTramAxe(stdMajor, stdMinor, orient,
+        Sax, Sbx, alpha = self.projectionOnLateralTramAxe(stdMajor, stdMinor, orient,
                                                  point, pp)
 
         ''' Change scale from meter to centimeters and round to mm'''
@@ -171,12 +171,10 @@ class SplitTrack:
         else:
             print('Houston err in errors() has a problem', Sy_tram)
 
-
-
         # Get the great value between Sax and Sbx to used in an integrity test
         Smax = max(Sax, Sbx)
 
-        return dist, err, pp, Sy_tram, Smax
+        return dist, err, pp, Sy_tram, Smax, alpha
 
     def classify_track(self, df):
         # remove nan position
@@ -207,19 +205,23 @@ class SplitTrack:
                         desc='Coordinates transformation ..',
                         position =0, leave=False)
 
-    def projection(self, df,  df_full, lon, lat, alt):
+    def projection(self, df, df_std, df_full, lon, lat, alt, Sa, Sb, Sh):
         if 'sapcorda' in self.filename:
             # Converstion from itrf14 to lv95
             # Progress bar
             loop = tqdm(total = len(alt),
                         desc='Coordinates transformation ..',
                         position =0, leave=False)
-
+            # print(len(alt), len(Sh))
             for i in range(len(alt)):
                 # llh vector
                 llh1 = [lon[i].tolist()[0],
                         lat[i].tolist()[0],
                         alt[i].tolist()[0]]
+
+                llh2 = [Sa[i].tolist()[0],
+                        Sb[i].tolist()[0],
+                        Sh[i].tolist()[0]]
 
                 ''' Apply linear interpolation between two months calculated
                 drift to get an drift values for the day. The drift is needed
@@ -228,8 +230,9 @@ class SplitTrack:
 
                 # Create a time series "t" with as number of days delaied from
                 # first epoch corretin : t = timestamp_now - epoch[0]
-                t = df_full.loc[df['index'][i],['timestamp']
-                                ][0] - self.drift.epoch[0]
+                t = df_full.loc[
+                        df['index'][i],['timestamp']][0] - self.drift.epoch[0]
+
 
                 t = t.days  # convert time delay in number od days
 
@@ -239,8 +242,16 @@ class SplitTrack:
                 dz = np.interp(t, self.tp, self.fz)
 
                 # Apply the projection on coord
+                enh1 = swiss_projection.wgs84_itrf14_to_lv95(llh1, [dx,dy,dz])
+
                 df_full.loc[df['index'][i],['lon','lat','alt']] \
-                    = swiss_projection.wgs84_itrf14_to_lv95(llh1, [dx,dy,dz])
+                    = enh1
+
+                # Apply the projection on std
+                # enh2 = swiss_projection.wgs84_itrf14_to_lv95(llh1+llh2, [dx,dy,dz])
+
+                # df_full.loc[df['index'][i],['stdMajor','stdMinor','stdAlt']] \
+                #     = [enh2[0] - enh1[0], enh2[1] - enh1[1], enh2[2] - enh1[2]]
 
                 # Progress bar: loop.set_description('i = %d', i )
                 loop.update(1)
@@ -251,7 +262,7 @@ class SplitTrack:
             # Converstion to lv95
             # Progress bar
             # print('Starting cooridnates transformation loop .. ')
-            loop = tqdm(total = len(alt),
+            loop = tqdm(total = len(alt) ,
                         desc='Coordinates transformation ..', position =0)
 
             for i in range(len(alt)):
@@ -260,11 +271,19 @@ class SplitTrack:
                         lat[i].tolist()[0],
                         alt[i].tolist()[0]]
 
+                llh2 = [Sa[i].tolist()[0],
+                        Sb[i].tolist()[0],
+                        Sh[i].tolist()[0]]
 
                  # Apply the projection on coord llh1
+                enh1 = swiss_projection.wgs84_to_lv95(llh1)
                 df_full.loc[df['index'][i],['lon','lat','alt']] \
-                    = swiss_projection.wgs84_to_lv95(llh1)
+                    = enh1
 
+                # Apply the projection on std
+                # enh2 = swiss_projection.wgs84_to_lv95(llh1+llh2)
+                # df_full.loc[df['index'][i],['stdMajor','stdMinor','stdAlt']] \
+                #     = [enh2[0] - enh1[0], enh2[1] - enh1[1], enh2[2] - enh1[2]]
                 # Progress bar:
                 loop.update(1)
             loop.close()
@@ -319,12 +338,10 @@ class SplitTrack:
         loop.close()
         return track_index
 
-    def get_distance_and_save(self, track_index, df_full, loop):
-
+    def get_distance_and_save(self, track_index,df_full,loop ):
         # Load rails als shapefile
         rail_back = gpd.read_file(self.rail_forth)
         rail_forth = gpd.read_file(self.rail_back)
-
         # if the directory does not exist it create it
         folder_name = self.head  +  '/tracks'
         if not os.path.isdir(folder_name):
@@ -372,14 +389,17 @@ class SplitTrack:
                                   respective projected standard deviation of
                                   the minor axis
 
-                        "Sytram":   Is the greater values between Sax and Sbx '''
+                        "Sytram":   Is the greater values between Sax and Sbx
+
+                        "alpha":   angle between the y-axis (perpendicular to
+                                   the rail) and E-axis '''
 
                 if track_type == 'foward':
                     for index, row in df2.iterrows():
                         if not math.isnan(row['geometry'].x) \
                             or not math.isnan(row['geometry'].x):
                             dist[index], err[index], pproj[index], \
-                            Sytram[index], Smax[index] \
+                            Sytram[index], Smax[index], alpha[index] \
                                 = self.errors(row['stdMajor'],
                                               row['stdMinor'], row['orient'],
                                               row['geometry'], rail_forth, df2)
@@ -388,13 +408,14 @@ class SplitTrack:
                     df2['err'] = err
                     df2['Sytram'] = Sytram
                     df2['Smax'] = Smax
+                    df2['alpha'] = alpha
 
                 elif track_type == 'backward':
                     for index, row in df2.iterrows():
                         if not math.isnan(row['geometry'].x) \
                             or not math.isnan(row['geometry'].x):
                             dist[index], err[index],pproj[index], \
-                            Sytram[index], Smax[index] = \
+                            Sytram[index], Smax[index], alpha[index] = \
                                 self.errors(row['stdMajor'],
                                             row['stdMinor'],row['orient'],
                                             row['geometry'], rail_back, df2)
@@ -403,6 +424,7 @@ class SplitTrack:
                     df2['err'] = err
                     df2['Sytram'] = Sytram
                     df2['Smax'] = Smax
+                    df2['alpha'] = alpha
 
                 elif track_type == 'too small':
                     continue
@@ -444,6 +466,10 @@ class SplitTrack:
         # Drop rows where there is no coordinates (No fix)
         df = df_full.dropna(subset=['lat', 'lon']).reset_index(drop=False)
 
+        # Drop rows where there is no standard deviation
+        df_std = df_full.dropna(subset=['stdMajor', 'stdMinor', 'stdAlt']
+                                        ).reset_index(drop=False)
+
         # Convert in degree (nmea format)
         df.loc[:,'lon'] = df.loc[:,'lon'].apply(self.degmin2deg)
         df.loc[:,'lat'] = df.loc[:,'lat'].apply(self.degmin2deg)
@@ -453,7 +479,12 @@ class SplitTrack:
         lat =  pd.DataFrame(df['lat']).to_numpy()
         alt =  pd.DataFrame(df['alt']).to_numpy()
 
-        df_full = self.projection(df, df_full, lon, lat, alt)
+        Sa =  pd.DataFrame(df_std['stdMajor']).to_numpy()
+        Sb =  pd.DataFrame(df_std['stdMinor']).to_numpy()
+        Sh =  pd.DataFrame(df_std['stdAlt']).to_numpy()
+
+
+        df_full = self.projection(df, df_std, df_full, lon, lat, alt, Sa, Sb, Sh)
 
          # ========================= Split Track ===============================
         # Dataframe to matrix
@@ -463,7 +494,9 @@ class SplitTrack:
         lon =  pd.DataFrame(df_full['lon']).to_numpy()
         lat =  pd.DataFrame(df_full['lat']).to_numpy()
 
+
         track_index = self.split_track(df_full, lon,lat)
+
 
         # ===================== Mesure distance to Rail =======================
         # Progress bar
@@ -483,13 +516,13 @@ class SplitTrack:
         if df_full.empty or len(df_full)<=1:
             return
         # save the entire dataframe as a csv file
-        folder_name = self.folder_name + 'csv/'
+        self.folder_name = self.folder_name + 'csv/'
         # if the directory does not exist it create it
-        if not os.path.isdir(folder_name):
-            os.makedirs(folder_name)
+        if not os.path.isdir(self.folder_name):
+            os.makedirs(self.folder_name)
 
 
-        df_full.to_csv(folder_name + self.head+ ".csv", index=False)
+        df_full.to_csv(self.folder_name + self.head+ ".csv", index=False)
 
 
 
