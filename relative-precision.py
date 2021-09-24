@@ -95,7 +95,7 @@ class SplitTrack:
                 or self.is_inbox(x,y,box3) or self.is_inbox(x,y,box4)
                 # or self.is_inbox(x,y,box5)
 
-    def angle_Eaxis_dist(self, pproj, point):
+    def angle_Eaxis_yAxis(self, pproj, point):
         n1 = np.array([1, 0])
         x2 = point.coords[0][0] - pproj.coords[0][0]
         y2 = point.coords[0][1] - pproj.coords[0][1]
@@ -106,23 +106,27 @@ class SplitTrack:
 
         return np.degrees(angle)
 
-    def projectionOnLateralTramAxe(self, stdMajor, stdMinor, orient, point, pproj):
-        angle_Eaxis = self.angle_Eaxis_dist(pproj, point)
+    def projectionOnLateralTramAxe(self, stdLong, stdLat, point, pproj):
+
+        alpha = self.angle_Eaxis_yAxis(pproj, point)
 
         '''get the orientation of the major axis on the"local Tram" Frame :
             the orientation of the semi-major axis of error ellipse
             is given in degrees from true north and has values in the range
             [0,180] '''
 
-        new_orient = orient + angle_Eaxis - 90
-        stdMajorTramAxe = abs(stdMajor*np.cos(np.radians(new_orient)))
-        stdMinorTramAxe = abs(stdMinor*np.sin(np.radians(new_orient)))
+        # conversion in radiant
+        r_alpha = np.radians(alpha)
 
-        return stdMajorTramAxe, stdMinorTramAxe, angle_Eaxis
+        # First apply rotation then nimmt |.|
+        Sy_TramAxe = np.sqrt((stdLong*np.cos(r_alpha))**2 + (stdLat*np.sin(r_alpha))**2)
+        Sx_TramAxe = np.sqrt((stdLong*np.sin(r_alpha))**2 + (stdLat*np.cos(r_alpha))**2)
 
-    def errors(self, stdMajor, stdMinor, orient, point, polyline, df):
-        # Distance minimal entre le point et la linge par itératio
-        # C'est pas gönial car je teste toute les distances possible
+        return Sy_TramAxe, Sx_TramAxe, alpha
+
+    def errors(self, stdLon, stdLat, point, polyline, df):
+        # Distance minimal entre le point et la linge par itération
+        # C'est pas génial car je teste toute les distances possibles
 
         ''' Distance "d" of the point from the polyline (rails) and get also the
         point projection "pp" on the polyline '''
@@ -135,46 +139,31 @@ class SplitTrack:
                 pp = pp_new
         pp = line.interpolate(pp)
 
-
         ''' Projection of the standard deviation of the major and minor axis
         of the GNSS point onto the axis with same norm has dist (calcued has
         dist = point - pp)'''
-        Sax, Sbx, alpha = self.projectionOnLateralTramAxe(stdMajor, stdMinor, orient,
+        Sy, Sx, alpha = self.projectionOnLateralTramAxe(stdLon, stdLat,
                                                  point, pp)
 
-        ''' Change scale from meter to centimeters and round to mm'''
-        dist = round(dist*100, 1)
-        Sax = (Sax*100).round(decimals=1)
-        Sbx = (Sbx*100).round(decimals=1)
+        ''' Change scale from meter to 10 nm'''
+
+        alpha = round(alpha, 5)
 
         ''' Standirize the error ("dist") by the standart deviation on the same
         orientation of dist given computed from the receiver std major and
-        minor axis (Qxx)'''
-        Sy_tram = np.sqrt(Sax**2 + Sbx**2)
-        Sy_tram = Sy_tram.round(1)    # round to mm
+        minor axis (Qxx)
 
-        ''' This if is made to avoid uncontroled  change in the err unit if
-        Sy_tram is under 1 cm '''
-        if Sy_tram >= 1:
-            err = dist / Sy_tram
-            # Round err to mm (is already expressed in cm)
-            err = round(err, 1)
-        elif Sy_tram<1 :
-            # si plus petit que l'ordre du centimütre
-            err = (dist / Sy_tram)/10
-            # Round err to mm (is already expressed in cm)
-            err = round(err, 1)
-        elif np.isnan(Sy_tram):
-            err = None
-        elif np.isnan(dist):
-            err = None
-        else:
-            print('Houston err in errors() has a problem', Sy_tram)
+        This "if "is made to avoid uncontroled change in the err unit if
+        Sy is under 1 cm  Ungenau err is unitless'''
 
-        # Get the great value between Sax and Sbx to used in an integrity test
-        Smax = max(Sax, Sbx)
+        err = dist /Sy
 
-        return dist, err, pp, Sy_tram, Smax, alpha
+        err = round(err, 4)
+        dist = round(dist, 3)
+        Sy = (Sy).round(decimals=4)
+        Sx = (Sx).round(decimals=4)
+
+        return dist, err, pp, Sy, Sx, alpha
 
     def classify_track(self, df):
         # remove nan position
@@ -205,7 +194,7 @@ class SplitTrack:
                         desc='Coordinates transformation ..',
                         position =0, leave=False)
 
-    def projection(self, df, df_std, df_full, lon, lat, alt, Sa, Sb, Sh):
+    def projection(self, df, df_full, lon, lat, alt, Slon, Slat, Salt):
         if 'sapcorda' in self.filename:
             # Converstion from itrf14 to lv95
             # Progress bar
@@ -219,9 +208,25 @@ class SplitTrack:
                         lat[i].tolist()[0],
                         alt[i].tolist()[0]]
 
-                llh2 = [Sa[i].tolist()[0],
-                        Sb[i].tolist()[0],
-                        Sh[i].tolist()[0]]
+                # Transform in radiant for the llh2xyz function
+                r_llh1 = np.array([None, None, llh1[2]])
+                r_llh1[0] = np.pi / 180 * llh1[0]
+                r_llh1[1] = np.pi / 180 * llh1[1]
+
+                xyz1 = swiss_projection.llh2xyz(r_llh1, 'WGS84')
+
+                xyz2 =  [Slon[i].tolist()[0],
+                        Slat[i].tolist()[0],
+                        Salt[i].tolist()[0]]
+
+                xyz = [xyz2[0] + xyz1[0], xyz2[1] + xyz1[1], xyz2[2] + xyz1[2]]
+
+                # Get std value in degree
+                llh = swiss_projection.xyz2llh(xyz, 'WGS84')
+                llh[0] = 180 / np.pi * llh[0]
+                llh[1] = 180 / np.pi * llh[1]
+
+                # llh2 = [llh[0] - llh1[0], llh[1] - llh1[1], llh[2] - llh1[2]]
 
                 ''' Apply linear interpolation between two months calculated
                 drift to get an drift values for the day. The drift is needed
@@ -232,7 +237,6 @@ class SplitTrack:
                 # first epoch corretin : t = timestamp_now - epoch[0]
                 t = df_full.loc[
                         df['index'][i],['timestamp']][0] - self.drift.epoch[0]
-
 
                 t = t.days  # convert time delay in number od days
 
@@ -248,10 +252,12 @@ class SplitTrack:
                     = enh1
 
                 # Apply the projection on std
-                # enh2 = swiss_projection.wgs84_itrf14_to_lv95(llh1+llh2, [dx,dy,dz])
+                enh = swiss_projection.wgs84_itrf14_to_lv95(llh, [dx,dy,dz])
 
-                # df_full.loc[df['index'][i],['stdMajor','stdMinor','stdAlt']] \
-                #     = [enh2[0] - enh1[0], enh2[1] - enh1[1], enh2[2] - enh1[2]]
+                df_full.loc[df['index'][i],['stdLong','stdLat','stdAlt']] \
+                    = [abs(round(enh[0] - enh1[0],5)),
+                       abs(round(enh[1] - enh1[1],5)),
+                       abs(round(enh[2] - enh1[2],5))]
 
                 # Progress bar: loop.set_description('i = %d', i )
                 loop.update(1)
@@ -271,9 +277,22 @@ class SplitTrack:
                         lat[i].tolist()[0],
                         alt[i].tolist()[0]]
 
-                llh2 = [Sa[i].tolist()[0],
-                        Sb[i].tolist()[0],
-                        Sh[i].tolist()[0]]
+                # Transform in radiant for the llh2xyz function
+                r_llh1 = np.array([None, None,llh1[2]])
+                r_llh1[0] = np.pi / 180 * llh1[0]
+                r_llh1[1] = np.pi / 180 * llh1[1]
+                xyz1 = swiss_projection.llh2xyz(r_llh1, 'WGS84')
+
+                xyz2 =  [Slon[i].tolist()[0],
+                        Slat[i].tolist()[0],
+                        Salt[i].tolist()[0]]
+
+                xyz = [xyz2[0] + xyz1[0], xyz2[1] + xyz1[1], xyz2[2] + xyz1[2]]
+
+                # Get std value in degree
+                llh = swiss_projection.xyz2llh(xyz, 'WGS84')
+                llh[0] = 180 / np.pi * llh[0]
+                llh[1] = 180 / np.pi * llh[1]
 
                  # Apply the projection on coord llh1
                 enh1 = swiss_projection.wgs84_to_lv95(llh1)
@@ -281,9 +300,11 @@ class SplitTrack:
                     = enh1
 
                 # Apply the projection on std
-                # enh2 = swiss_projection.wgs84_to_lv95(llh1+llh2)
-                # df_full.loc[df['index'][i],['stdMajor','stdMinor','stdAlt']] \
-                #     = [enh2[0] - enh1[0], enh2[1] - enh1[1], enh2[2] - enh1[2]]
+                enh = swiss_projection.wgs84_to_lv95(llh)
+                df_full.loc[df['index'][i],['stdLong','stdLat','stdAlt']] \
+                    = [abs(round(enh[0] - enh1[0],5)),
+                       abs(round(enh[1] - enh1[1],5)),
+                       abs(round(enh[2] - enh1[2],5))]
                 # Progress bar:
                 loop.update(1)
             loop.close()
@@ -369,8 +390,9 @@ class SplitTrack:
                 dist = [None]*len(df2['geometry'])
                 pproj = [None]*len(df2['geometry'])
                 err = [None]*len(df2['geometry'])
-                Sytram = [None]*len(df2['geometry'])
-                Smax = [None]*len(df2['geometry'])
+                Sy = [None]*len(df2['geometry'])
+                Sx = [None]*len(df2['geometry'])
+                alpha = [None]*len(df2['geometry'])
 
                 ''' Get information about the GNSS mesure errors
                         "dist" :  orthogonal distance between point and rail
@@ -381,15 +403,10 @@ class SplitTrack:
                                   line
 
                         "err":    standarized absolute errors.
-                                  err = dist /sqrt(Sax^2+Sbx^2)
+                                  err = dist / Sy
 
-                                  where Sax is the standard deviation of the
-                                  major axis projected onto the an axis with
-                                  share the same norm as "dist". Sbx is the
-                                  respective projected standard deviation of
-                                  the minor axis
 
-                        "Sytram":   Is the greater values between Sax and Sbx
+                        "Sy":      Is
 
                         "alpha":   angle between the y-axis (perpendicular to
                                    the rail) and E-axis '''
@@ -399,15 +416,15 @@ class SplitTrack:
                         if not math.isnan(row['geometry'].x) \
                             or not math.isnan(row['geometry'].x):
                             dist[index], err[index], pproj[index], \
-                            Sytram[index], Smax[index], alpha[index] \
-                                = self.errors(row['stdMajor'],
-                                              row['stdMinor'], row['orient'],
+                            Sy[index], Sx[index], alpha[index] \
+                                = self.errors(row['stdLong'],
+                                              row['stdLat'],
                                               row['geometry'], rail_forth, df2)
                     df2['dist'] = dist
                     df2['pproj'] = pproj
                     df2['err'] = err
-                    df2['Sytram'] = Sytram
-                    df2['Smax'] = Smax
+                    df2['SyTram'] = Sy
+                    df2['SxTram'] = Sx
                     df2['alpha'] = alpha
 
                 elif track_type == 'backward':
@@ -415,15 +432,15 @@ class SplitTrack:
                         if not math.isnan(row['geometry'].x) \
                             or not math.isnan(row['geometry'].x):
                             dist[index], err[index],pproj[index], \
-                            Sytram[index], Smax[index], alpha[index] = \
-                                self.errors(row['stdMajor'],
-                                            row['stdMinor'],row['orient'],
+                            Sy[index], Sx[index], alpha[index] = \
+                                self.errors(row['stdLong'],
+                                            row['stdLat'],
                                             row['geometry'], rail_back, df2)
                     df2['dist'] = dist
                     df2['pproj'] = pproj
                     df2['err'] = err
-                    df2['Sytram'] = Sytram
-                    df2['Smax'] = Smax
+                    df2['SyTram'] = Sy
+                    df2['SxTram'] = Sx
                     df2['alpha'] = alpha
 
                 elif track_type == 'too small':
@@ -462,31 +479,32 @@ class SplitTrack:
         df_full, valid = timeseries.getDataFrame()
 
 
-        # ========================= Change Projection =========================
+        # ====================== Projection to MN95 ==========================
         # Drop rows where there is no coordinates (No fix)
         df = df_full.dropna(subset=['lat', 'lon']).reset_index(drop=False)
-
-        # Drop rows where there is no standard deviation
-        df_std = df_full.dropna(subset=['stdMajor', 'stdMinor', 'stdAlt']
-                                        ).reset_index(drop=False)
 
         # Convert in degree (nmea format)
         df.loc[:,'lon'] = df.loc[:,'lon'].apply(self.degmin2deg)
         df.loc[:,'lat'] = df.loc[:,'lat'].apply(self.degmin2deg)
 
         # Dataframe to matrix
+
+        # Coordinatne in WGS84:  Longitude, Latitude, Altitute
         lon =  pd.DataFrame(df['lon']).to_numpy()
         lat =  pd.DataFrame(df['lat']).to_numpy()
         alt =  pd.DataFrame(df['alt']).to_numpy()
 
-        Sa =  pd.DataFrame(df_std['stdMajor']).to_numpy()
-        Sb =  pd.DataFrame(df_std['stdMinor']).to_numpy()
-        Sh =  pd.DataFrame(df_std['stdAlt']).to_numpy()
+        # Ecart-type in WGS84:  Std Longitude, Std Latitude, Std Altitute
+        Slon =  pd.DataFrame(df['stdLong']).to_numpy()
+        Slat =  pd.DataFrame(df['stdLat']).to_numpy()
+        Salt =  pd.DataFrame(df['stdAlt']).to_numpy()
 
-
-        df_full = self.projection(df, df_std, df_full, lon, lat, alt, Sa, Sb, Sh)
+        # Projection function
+        df_full = self.projection(df, df_full, lon, lat, alt, Slon, Slat, Salt)
 
          # ========================= Split Track ===============================
+         # Needed to detect the tram location
+
         # Dataframe to matrix
         df_full['timestamp'] = pd.to_datetime(df_full['timestamp'],
                                               format='%Y-%m-%dT%H:%M:%SZ')
@@ -499,6 +517,7 @@ class SplitTrack:
 
 
         # ===================== Mesure distance to Rail =======================
+
         # Progress bar
         loop = tqdm(total = 100 , position =0, desc='Calculating distances')
 
@@ -507,6 +526,8 @@ class SplitTrack:
         track_index = track_index[~mask]
         track_index = track_index.astype(int)
 
+        # Algorithm that locate the tram on the right rails and then meaure the
+        # perpendicular distance
         self.get_distance_and_save(track_index,df_full,loop)
 
 
@@ -552,11 +573,12 @@ class Batch:
 
 # In[]:
 # Call the interface class
-# app = gui.Interface()
-# app.title('Parse UBX messages')
-# app.mainloop()
-# filepath = app.output()
-filepath = 'C:/SwisstopoMobility/Analyse/DataBase/2021/05_May/18'
+app = gui.Interface()
+app.title('Parse UBX messages')
+app.mainloop()
+filepath = app.output()
+# filepath = 'C:/SwisstopoMobility/Analyse/DataBase/2021/03_March/18/sapcorda.snmea'
+# filepath = 'C:/SwisstopoMobility/Analyse/DataBase/2021/05_May/18/swipos_NetR9.snmea'
 
 # Executre once for the selcted file
 if os.path.isfile(filepath):
