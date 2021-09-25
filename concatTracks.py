@@ -17,8 +17,8 @@ from geopandas.tools import sjoin
 
 class Concat():
     def __init__(self, data_dir, receiver):
-        self.do_zone = False
-        self.zone_name = 'zone4'
+        self.do_zone = True
+        self.zone_name = 'zone2'
         self.main_dir = './Analyse/DataBase'
         self.save_dir = './res/data/'
         self.loop_shp = '.\\maps\\railways\\loops.shp'
@@ -58,7 +58,11 @@ class Concat():
                 head, tail = os.path.split(root)
                 if extension == self.ext and self.receiver in tail:
                     # Open outpufile in append mode
-                    self.outfile = open(self.outfile_name, 'ab')
+                    if self.do_zone :
+                        self.outfile= open(self.outfile_name_zone, 'ab')
+                    else:
+                        self.outfile = open(self.outfile_name, 'ab')
+
 
                     # Importation of tracks as Dataframe
                     timeseries = ResultDf(entry.path, self.columns)
@@ -104,14 +108,13 @@ class Concat():
                         df2 = df3[df3['lon'].notna()] # df without NaN
                         df1 = df3[df3['lon'].isna()]  # df wih only Nan
 
-                        saveFile = self.outfile_zone
+
                     else:
 
                         # Remove NaN longitude and latitude for the gpd function
                         df2 = df[df['lon'].notna()] # df without NaN
                         df1 = df[df['lon'].isna()]  # df wih only Nan
 
-                        saveFile = self.outfile
 
                     # ========= Remove those unsafe ans biased area for the analysis =========
 
@@ -154,7 +157,7 @@ class Concat():
 
 
                     # Write only certain columns
-                    df3.to_csv(saveFile,
+                    df3.to_csv(self.outfile,
                             sep=',',
                             na_rep='',
                             columns=self.columns,
@@ -162,7 +165,9 @@ class Concat():
                             index=False,
                             line_terminator = '\n')
 
-                    saveFile.close()
+                    self.outfile.close()
+
+
 
 
 
