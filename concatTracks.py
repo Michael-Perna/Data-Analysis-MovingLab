@@ -1,8 +1,8 @@
 
+
 # -*- coding: utf-8 -*-
 """
 Created on Tue Dec  8 13:34:54 2020
-
 @author: Michael
 """
 import warnings
@@ -17,19 +17,21 @@ from geopandas.tools import sjoin
 
 class Concat():
     def __init__(self, data_dir, receiver):
-        self.zone_name = '_zone4'
+        self.do_zone = False
+        self.zone_name = 'zone4'
         self.main_dir = './Analyse/DataBase'
         self.save_dir = './res/data/'
         self.loop_shp = '.\\maps\\railways\\loops.shp'
-        self.zone = '.\\maps\\areas-of-interest\\' +  self.zone_name[1:]+'.shp'
+        self.zone = '.\\maps\\areas-of-interest\\'+ self.zone_name+'.shp'
 
         self.receiver = receiver
         self.ext = '.results'
         self.data_dir = data_dir + self.ext
         self.foldername = data_dir
-        self.outfile_name = self.save_dir + self.receiver+ self.zone_name + '.data'
-        self.columns=['timestamp','lon','stdLat', 'lat', 'stdLat', 'posMode','numSV',
-                     'difAge','HDOP','dist', 'err', 'SyTram', 'SxTram', 'alpha']
+        self.outfile_name = self.save_dir + self.receiver+ '.data'
+        self.outfile_name_zone = self.save_dir + self.receiver+ '_' + self.zone_name + '.data'
+        self.columns=['timestamp','lon','lat','posMode','numSV','difAge',
+                       'HDOP','dist']
 
     # Taken from https://stackoverflow.com/a/600612/119527
     def mkdir_p(self, path):
@@ -67,7 +69,8 @@ class Concat():
                         continue
 
                     # ========= Zone analysis =========
-                    if self.zone_name != '':
+                    if self.do_zone:
+
                         # Remove NaN longitude and latitude for the gpd function
                         df2 = df[df['lon'].notna()] # df without NaN
                         df1 = df[df['lon'].isna()]  # df wih only Nan
@@ -101,11 +104,14 @@ class Concat():
                         df2 = df3[df3['lon'].notna()] # df without NaN
                         df1 = df3[df3['lon'].isna()]  # df wih only Nan
 
+                        saveFile = self.outfile_zone
                     else:
+
                         # Remove NaN longitude and latitude for the gpd function
                         df2 = df[df['lon'].notna()] # df without NaN
                         df1 = df[df['lon'].isna()]  # df wih only Nan
 
+                        saveFile = self.outfile
 
                     # ========= Remove those unsafe ans biased area for the analysis =========
 
@@ -145,8 +151,10 @@ class Concat():
                     # Limit distance to mm to save memory space
                     df3['dist']=df3['dist'].round(3)
 
+
+
                     # Write only certain columns
-                    df3.to_csv(self.outfile,
+                    df3.to_csv(saveFile,
                             sep=',',
                             na_rep='',
                             columns=self.columns,
@@ -154,7 +162,7 @@ class Concat():
                             index=False,
                             line_terminator = '\n')
 
-                    self.outfile.close()
+                    saveFile.close()
 
 
 
