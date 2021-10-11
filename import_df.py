@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-Created on Mon Dec 14 17:07:52 2020
+Created on Mon Dec 14 17:07:52 2020.
 
 @author: Michael
 """
@@ -8,18 +8,39 @@ import pandas as pd
 from itertools import permutations, chain
 
 
-def six_str(letter, length):
-    l = letter
-    letters=['']*length
-    for i in range(length):
-        letters[i]= letter
-        letter = letter + l
+def six_str(letter: str, n_string: int):
+    """
+    Create 'n_string' with ascendent consecuitve 'letter'.
+
+    Parameters
+    ----------
+    letter : str
+        Should be a single letter.
+    n_string : integer
+        Number of wanted output string.
+
+    Returns
+    -------
+    letters : list
+        The list contain all the created string.
+
+    Example:
+        six_str('A', 3)
+        letters = 'A', 'AA', 'AAA'
+    """
+    let = letter
+    letters = ['']*n_string
+    for i in range(n_string):
+        letters[i] = letter
+        letter = letter + let
     return letters
 
-def _pos_dict():
-    NoFix = six_str('N',6)
 
-    AutoFix = six_str('A',6)
+def _pos_dict():
+    """Make dictionnary with all letter permutation."""
+    NoFix = six_str('N', 6)
+
+    AutoFix = six_str('A', 6)
     a = [''.join(p) for p in permutations('ANNNNN')]
     b = [''.join(p) for p in permutations('AANNNN')]
     c = [''.join(p) for p in permutations('AAANNN')]
@@ -28,9 +49,9 @@ def _pos_dict():
     f = [''.join(p) for p in permutations('ANNN')]
     g = [''.join(p) for p in permutations('AANN')]
     h = [''.join(p) for p in permutations('AAAN')]
-    AutoFix = list(chain(AutoFix,a,b,c,d,e,f,g,h))
+    AutoFix = list(chain(AutoFix, a, b, c, d, e, f, g, h))
 
-    DiffFix = six_str('D',6)
+    DiffFix = six_str('D', 6)
     a = [''.join(p) for p in permutations('DNNNNN')]
     b = [''.join(p) for p in permutations('DDNNNN')]
     c = [''.join(p) for p in permutations('DDDNNN')]
@@ -39,9 +60,9 @@ def _pos_dict():
     f = [''.join(p) for p in permutations('DNNN')]
     g = [''.join(p) for p in permutations('DDNN')]
     h = [''.join(p) for p in permutations('DDDN')]
-    DiffFix = list(chain(DiffFix,a,b,c,d,e,f,g,h))
+    DiffFix = list(chain(DiffFix, a, b, c, d, e, f, g, h))
 
-    RtkFloat = six_str('F',6)
+    RtkFloat = six_str('F', 6)
     a = [''.join(p) for p in permutations('FNNNNN')]
     b = [''.join(p) for p in permutations('FFNNNN')]
     c = [''.join(p) for p in permutations('FFFNNN')]
@@ -50,9 +71,9 @@ def _pos_dict():
     f = [''.join(p) for p in permutations('FNNN')]
     g = [''.join(p) for p in permutations('FFNN')]
     h = [''.join(p) for p in permutations('FFFN')]
-    RtkFloat = list(chain(RtkFloat,a,b,c,d,e,f,g,h))
+    RtkFloat = list(chain(RtkFloat, a, b, c, d, e, f, g, h))
 
-    RtkFix= six_str('R',6)
+    RtkFix = six_str('R', 6)
     a = [''.join(p) for p in permutations('RNNNNN')]
     b = [''.join(p) for p in permutations('RRNNNN')]
     c = [''.join(p) for p in permutations('RRRNNN')]
@@ -61,7 +82,7 @@ def _pos_dict():
     f = [''.join(p) for p in permutations('RNNN')]
     g = [''.join(p) for p in permutations('RRNN')]
     h = [''.join(p) for p in permutations('RRRN')]
-    RtkFix = list(chain(RtkFix,a,b,c,d,e,f,g,h))
+    RtkFix = list(chain(RtkFix, a, b, c, d, e, f, g, h))
 
     # Creating an e,pty dictionatry
     posMode = {}
@@ -76,173 +97,200 @@ def _pos_dict():
 
     return posMode
 
-def _import_df(filename, header, types, dateFormat, navModeFlag):
-            # Open the file
-        file = open(filename)
 
-        # Import csv file as DataFrame with pandas as String
-        df = pd.read_csv(file,
-                         sep=',',
-                         header=None,
-                         dtype=str
-                         )
+def _import_df(filename: str, header: dict, types: dict, dateFormat: str):
+    """
+    Import dataframe from textfile.
 
-        #Getting shape of the df
-        shape = df.shape
-        # If the numbers of column missmatch reurnt an error
-        if shape[1]!= len(header):
-            valid=False
-            return df, valid
-        else:
-            valid=True
-        # Add name to each column
-        df.columns = header
+    Parameters
+    ----------
+    filename : string
+        file path to the data.
+    header : dictionnary
+        name of the column to be assinged to the dataframe df.
+    types : dictionnary
+        type of the data of each column.
+    dateFormat : string
+        format to be applied to the timestamps string
+        (i.e  '%Y-%m-%dT%H:%M:%SZ').
 
-        # Apply the type format according to the dico
-        for col, col_type in types.items():
-            if col in df.columns:
-                df[col] = df[col].astype(col_type, errors='ignore')
+    Returns
+    -------
+    df : dataframe
+        dataframe containig the column 'header' of the 'filename' file.
+    valid : boolean
+        False if the header does not much with the numbers of data columns.
+        True otherwiser.
 
-        # Apply time format
-        df['timestamp'] = pd.to_datetime(df['timestamp'],
-                                         format=dateFormat)
+    """
+    # Open the file
+    file = open(filename)
 
-        # Close the File
-        file.close()
+    # Import csv file as DataFrame with pandas as String
+    df = pd.read_csv(file,
+                     sep=',',
+                     header=None,
+                     dtype=str
+                     )
 
-
-
+    # Getting shape of the df
+    shape = df.shape
+    # If the numbers of column missmatch reurnt an error
+    if shape[1] != len(header):
+        valid = False
         return df, valid
+    else:
+        valid = True
+    # Add name to each column
+    df.columns = header
 
-qualityFlag = {0 :'Missing',
-                1 :'No Fix',
-                2 :'Autonomous GNSS fix',
-                3 :'Differential GNSS fix',
-                4 :'RTK fixed',
-                5 :'RTK float',
-                6 :'Estimated or dead reckoning fix'
-                }
+    # Apply the type format according to the dico
+    for col, col_type in types.items():
+        if col in df.columns:
+            df[col] = df[col].astype(col_type, errors='ignore')
 
-navModeFlag = {1 :'No Fix',
-                2 :'2D fix',
-                3 :'3D fix',
-                }
+    # Apply time format
+    df['timestamp'] = pd.to_datetime(df['timestamp'],
+                                     format=dateFormat)
+
+    # Close the File
+    file.close()
+
+    return df, valid
+
+
+qualityFlag = {0: 'Missing',
+               1: 'No Fix',
+               2: 'Autonomous GNSS fix',
+               3: 'Differential GNSS fix',
+               4: 'RTK fixed',
+               5: 'RTK float',
+               6: 'Estimated or dead reckoning fix'
+               }
+
+navModeFlag = {1: 'No Fix',
+               2: '2D fix',
+               3: '3D fix',
+               }
 
 header1 = ['timestamp',
-            'lon',
-            'stdLong',
-            'lat',
-            'stdLat',
-            'alt',
-            'stdAlt',
-            'sep',
-            'rangeRMS',
-            'posMode',
-            'numSV',
-            'difAge',
-            'numGP',
-            'numGL',
-            'numGA',
-            'numGB',
-            'opMode',
-            'navMode',
-            'PDOP',
-            'HDOP',
-            'VDOP',
-            'stdMajor',
-            'stdMinor',
-            'orient']
+           'lon',
+           'stdLong',
+           'lat',
+           'stdLat',
+           'alt',
+           'stdAlt',
+           'sep',
+           'rangeRMS',
+           'posMode',
+           'numSV',
+           'difAge',
+           'numGP',
+           'numGL',
+           'numGA',
+           'numGB',
+           'opMode',
+           'navMode',
+           'PDOP',
+           'HDOP',
+           'VDOP',
+           'stdMajor',
+           'stdMinor',
+           'orient']
 
-types1 = {  'timestamp':str,
-            'lon':float,
-            'stdLong':float,
-            'lat':float,
-            'stdLat':float,
-            'alt':float,
-            'stdAlt':float,
-            'sep':float,
-            'rangeRMS':float,
-            'posMode':int,
-            'numSV':float,
-            'difAge': float,
-            'numGP':int,
-            'numGL':int,
-            'numGA':int,
-            'numGB':int,
-            'opMode':int,
-            'navMode':int,
-            'PDOP':float,
-            'HDOP':float,
-            'VDOP':float,
-            'stdMajor':float,
-            'stdMinor':float,
-            'orient':float,
-            'geometry':float,
-            'dist':float}
+types1 = {'timestamp': str,
+          'lon': float,
+          'stdLong': float,
+          'lat': float,
+          'stdLat': float,
+          'alt': float,
+          'stdAlt': float,
+          'sep': float,
+          'rangeRMS': float,
+          'posMode': int,
+          'numSV': float,
+          'difAge': float,
+          'numGP': int,
+          'numGL': int,
+          'numGA': int,
+          'numGB': int,
+          'opMode': int,
+          'navMode': int,
+          'PDOP': float,
+          'HDOP': float,
+          'VDOP': float,
+          'stdMajor': float,
+          'stdMinor': float,
+          'orient': float,
+          'geometry': float,
+          'dist': float}
 
 header2 = ['timestamp',
-                'lon',
-                'stdLong',
-                'lat',
-                'stdLat',
-                'alt',
-                'stdAlt',
-                'sep',
-                'rangeRMS',
-                'posMode',
-                'numSV',
-                'difAge',
-                'numGP',
-                'numGL',
-                'numGA',
-                'numGB',
-                'opMode',
-                'navMode',
-                'PDOP',
-                'HDOP',
-                'VDOP',
-                'stdMajor',
-                'stdMinor',
-                'orient',
-                'geometry',
-                'dist',
-                'pproj',
-                'err',
-                'Sytram',
-                'Smax']
+           'lon',
+           'stdLong',
+           'lat',
+           'stdLat',
+           'alt',
+           'stdAlt',
+           'sep',
+           'rangeRMS',
+           'posMode',
+           'numSV',
+           'difAge',
+           'numGP',
+           'numGL',
+           'numGA',
+           'numGB',
+           'opMode',
+           'navMode',
+           'PDOP',
+           'HDOP',
+           'VDOP',
+           'stdMajor',
+           'stdMinor',
+           'orient',
+           'geometry',
+           'dist',
+           'pproj',
+           'err',
+           'Sytram',
+           'Smax']
 
-types2 = {'timestamp':str,
-            'lon':float,
-            'stdLong':float,
-            'lat':float,
-            'stdLat':float,
-            'alt':float,
-            'stdAlt':float,
-            'sep':float,
-            'rangeRMS':float,
-            'posMode':str,
-            'numSV':float,
-            'difAge': float,
-            'numGP':int,
-            'numGL':int,
-            'numGA':int,
-            'numGB':int,
-            'opMode':str,
-            'navMode':str,
-            'PDOP':float,
-            'HDOP':float,
-            'VDOP':float,
-            'stdMajor':float,
-            'stdMinor':float,
-            'orient':float,
-            'geometry':float,
-            'dist':float,
-            'pproj':float,
-            'err':float,
-            'Sytram':float,
-            'Smax':float}
+types2 = {'timestamp': str,
+          'lon': float,
+          'stdLong': float,
+          'lat': float,
+          'stdLat': float,
+          'alt': float,
+          'stdAlt': float,
+          'sep': float,
+          'rangeRMS': float,
+          'posMode': str,
+          'numSV': float,
+          'difAge': float,
+          'numGP': int,
+          'numGL': int,
+          'numGA': int,
+          'numGB': int,
+          'opMode': str,
+          'navMode': str,
+          'PDOP': float,
+          'HDOP': float,
+          'VDOP': float,
+          'stdMajor': float,
+          'stdMinor': float,
+          'orient': float,
+          'geometry': float,
+          'dist': float,
+          'pproj': float,
+          'err': float,
+          'Sytram': float,
+          'Smax': float}
+
 
 class NmeaDf:
+    """Import .snmea data as dataframe."""
+
     def __init__(self, filename):
         self.dateFormat = '%Y-%m-%dT%H:%M:%SZ'
         self.filename = filename
@@ -253,11 +301,21 @@ class NmeaDf:
         self.types = types1
         self.header = header1
 
-
     def getDataFrame(self):
+        """
+        Import .snmea data as dataframe and apply flag name to string flag.
 
-        df, valid = _import_df(self.filename,self.header,self.types,
-                   self.dateFormat, self.navModeFlag)
+        Returns
+        -------
+        df : dataframe
+            dataframe containig the wnated parameters ('header') of the
+            'filename' file.
+        valid : boolean
+            False if the header does not much with the numbers of data columns.
+            True otherwiser.
+        """
+        df, valid = _import_df(self.filename, self.header, self.types,
+                               self.dateFormat)
 
         # Assing name to respective flag
         if 'navMode' in df.columns:
@@ -271,17 +329,25 @@ class NmeaDf:
         if 'posMode' in df.columns:
             posMode = _pos_dict()
             df['posMode'] = df['posMode'].replace(posMode['No Fix'], 'No Fix')
-            df['posMode'] = df['posMode'].replace(posMode['Autonomous GNSS fix'], 'Autonomous GNSS fix')
-            df['posMode'] = df['posMode'].replace(posMode['Differential GNSS fix'], 'Differential GNSS fix')
-            df['posMode'] = df['posMode'].replace(posMode['RTK float'], 'RTK float')
-            df['posMode'] = df['posMode'].replace(posMode['RTK fixed'], 'RTK fixed')
-
-        # Remove pandas column Head
+            df['posMode'] = df['posMode'].replace(
+                posMode['Autonomous GNSS fix'], 'Autonomous GNSS fix'
+                )
+            df['posMode'] = df['posMode'].replace(
+                posMode['Differential GNSS fix'], 'Differential GNSS fix'
+                )
+            df['posMode'] = df['posMode'].replace(
+                posMode['RTK float'], 'RTK float'
+                )
+            df['posMode'] = df['posMode'].replace(
+                posMode['RTK fixed'], 'RTK fixed'
+            )
 
         return df, valid
 
 
 class ResultDf:
+    """Import .results data as dataframe."""
+
     def __init__(self, filename, columns):
         self.dateFormat = '%Y-%m-%d %H:%M:%S'
         self.filename = filename
@@ -293,13 +359,23 @@ class ResultDf:
         self.columns = columns
 
     def get_df(self):
+        """
+        Import .results data as dataframe and apply flag name to string flag.
 
+        Returns
+        -------
+        df : dataframe
+            dataframe containig the wnated parameters ('header') of the
+            'filename' file.
+        valid : boolean
+            False if the header does not much with the numbers of data columns.
+            True otherwiser.
+        """
         df, valid = _import_df(self.filename,
-                   self.header,
-                   self.types,
-                   self.dateFormat,
-                   self.navModeFlag
-                   )
+                               self.header,
+                               self.types,
+                               self.dateFormat
+                               )
 
         # Select only column accordint to columns list
         if valid:
@@ -308,15 +384,28 @@ class ResultDf:
         # Assing name to respective flag
         if 'posMode' in df.columns:
             posMode = _pos_dict()
-            df['posMode'] = df['posMode'].replace(posMode['No Fix'], 'No Fix')
-            df['posMode'] = df['posMode'].replace(posMode['Autonomous GNSS fix'], 'Autonomous GNSS fix')
-            df['posMode'] = df['posMode'].replace(posMode['Differential GNSS fix'], 'Differential GNSS fix')
-            df['posMode'] = df['posMode'].replace(posMode['RTK float'], 'RTK float')
-            df['posMode'] = df['posMode'].replace(posMode['RTK fixed'], 'RTK fixed')
+            df['posMode'] = df['posMode'].replace(
+                posMode['No Fix'], 'No Fix'
+                )
+            df['posMode'] = df['posMode'].replace(
+                posMode['Autonomous GNSS fix'], 'Autonomous GNSS fix'
+                )
+            df['posMode'] = df['posMode'].replace(
+                posMode['Differential GNSS fix'], 'Differential GNSS fix'
+                )
+            df['posMode'] = df['posMode'].replace(
+                posMode['RTK float'], 'RTK float'
+                )
+            df['posMode'] = df['posMode'].replace(
+                posMode['RTK fixed'], 'RTK fixed'
+                )
 
         return df, valid
 
+
 class StatDf:
+    """Import .results data as dataframe."""
+
     def __init__(self, filename, columns):
         self.dateFormat = '%Y-%m-%d %H:%M:%S'
         self.filename = filename
@@ -328,16 +417,22 @@ class StatDf:
         self.header = columns
 
     def get_df(self):
+        """
+        Import .snmea data as dataframe and apply flag name to string flag.
 
+        Returns
+        -------
+        df : dataframe
+            dataframe containig the wnated parameters ('header') of the
+            'filename' file.
+        valid : boolean
+            False if the header does not much with the numbers of data columns.
+            True otherwiser.
+        """
         df, valid = _import_df(self.filename,
-                   self.header,
-                   self.types,
-                   self.dateFormat,
-                   self.navModeFlag
-                   )
-
-
+                               self.header,
+                               self.types,
+                               self.dateFormat
+                               )
 
         return df, valid
-
-

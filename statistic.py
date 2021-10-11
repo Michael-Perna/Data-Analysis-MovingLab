@@ -1,12 +1,10 @@
 # -*- coding: utf-8 -*-
 """
-Created on Tue Mar 23 11:17:43 2021
+Created on Tue Mar 23 11:17:43 2021.
 
 @author: Michael
 
 """
-
-
 
 # Module importation
 from lib.import_df import StatDf
