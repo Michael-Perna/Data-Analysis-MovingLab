@@ -1,9 +1,0 @@
-# -*- coding: utf-8 -*-
-"""
-.
-
-@author: Michael
-"""
-
-from .swiss_projection import ellipsoid
-from .swiss_projection import swiss_projection
