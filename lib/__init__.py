@@ -2,9 +2,30 @@
 # -*- coding: utf-8 -*-
 """Modules used in MovingLAb Project."""
 
-from lib.plot_theo import plotHistDist, plotHistDist2, plotHist, plotHist2
-from lib.plot_theo import plotShpLine, plotRefLine
-from lib.analyse_theodolites import ParseTheo, AnalysisTheo, AnalysisTheo2
-from lib.geotools import distance_pt2shpline, pt2shpline
-from lib.timetools import utcrcf3339
-from lib.parse_xsens import ParseXsens
+# TODO: __all__ = []
+
+# global variables
+from . import global_
+
+# =============================================================================
+# Time management
+# =============================================================================
+from .timetools import utcrcf3339
+from .timetools import sync
+
+# =============================================================================
+# Load dataframes
+# =============================================================================
+from .load_df import nmea_df
+from .load_df import result_df
+from .load_df import stat_df
+from .load_df import theo_df
+from .load_df import xsense_df
+
+from .parse_xsens import ParseXsens
+
+# =============================================================================
+# Theodolites analysis tool
+# =============================================================================
+from .analyse_theodolites import AnalysisTheo
+from .analyse_theodolites import AnalysisTheo2

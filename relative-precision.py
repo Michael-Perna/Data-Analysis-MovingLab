@@ -4,7 +4,7 @@
 # In[ ]:
 # Module importation
 import lib.swiss_projection
-from lib.import_df import NmeaDf
+from lib.load_df import NmeaDf
 import numpy as np
 import warnings
 import pandas as pd

@@ -11,6 +11,9 @@ import os
 import iso8601
 import pytz
 
+from . import global_
+from .timetools import utcrcf3339
+
 
 class ParseXsens:
     """Parse x-sens data into .SNMEA format."""
@@ -20,22 +23,10 @@ class ParseXsens:
         self.save = save
 
         # Create Data Frame
-        columns = ['timestamp', 'lon', 'stdLong', 'lat', 'stdLat', 'alt',
-                   'stdAlt', 'sep', 'rangeRMS', 'posMode', 'numSV',
-                   'difAge', 'numGP', 'numGL', 'numGA', 'numGB',
-                   'opMode', 'navMode',
-                   'PDOP', 'HDOP', 'VDOP', 'stdMajor', 'stdMinor', 'orient',
-                   'fixType']
+        columns = global_.header3
 
         self.df_out = pd.DataFrame(
             data=None, index=None, columns=columns, dtype=None, copy=False)
-
-    def utcrcf3339(self, date: str):
-        """Convert UTC time string into UTC Z format '%Y-%m-%dT%H:%M:%SZ'."""
-        _date_obj = iso8601.parse_date(date)
-        _date_utc = _date_obj.astimezone(pytz.utc)
-        _date_utc_zformat = _date_utc.strftime('%Y-%m-%dT%H:%M:%SZ')
-        return _date_utc_zformat
 
     def main(self):
         """
@@ -54,7 +45,7 @@ class ParseXsens:
 
         """
         # Open txt file
-        print('loading : ', self.txt_file)
+        print('loading :', self.txt_file)
         df = pd.read_csv(self.txt_file, dtype=str)
 
         # Date
@@ -63,7 +54,8 @@ class ParseXsens:
             df['UTC_Hour'].str.zfill(2) +\
             df['UTC_Minute'].str.zfill(2) + df['UTC_Second']
 
-        df['timestamp'] = df['date'].map(lambda x: self.utcrcf3339(x))
+        # OPTIMIZE: very slow process
+        df['timestamp'] = df['date'].map(lambda x: utcrcf3339(x))
 
         # Fill output
         self.df_out['timestamp'] = df['timestamp']
@@ -83,42 +75,8 @@ class ParseXsens:
             root, ext = os.path.splitext(tail)
 
             # save the entire dataframe as a csv file
-            print('saving : ' + head + '/snmea/' + root + ".snmea")
-            self.df_out.to_csv(head + '/snmea/' + root + ".snmea")
+            print('saving  : ' + head + '/snmea/' + root + ".snmea")
+            self.df_out.to_csv(head + '/snmea/' + root + ".snmea",
+                               header=False, index=False)
 
         return df
-
-
-# Manually isn't nice but effective
-# mars = ParseXsens('./data/18_03_2021/xsens_00.txt')
-# df = mars.main()
-
-# mars = ParseXsens('./data/18_03_2021/xsens_01.txt')
-# df = mars.main()
-
-# mars = ParseXsens('./data/18_03_2021/xsens_02.txt')
-# df = mars.main()
-
-# mars = ParseXsens('./data/18_03_2021/xsens_03.txt')
-# df = mars.main()
-
-# mars = ParseXsens('./data/18_03_2021/xsens_04.txt')
-# df = mars.main()
-
-# mars = ParseXsens('./data/18_03_2021/xsens_05.txt')
-# df = mars.main()
-
-# mars = ParseXsens('./data/18_03_2021/xsens_06.txt')
-# df = mars.main()
-
-# mars = ParseXsens('./data/18_03_2021/xsens_07.txt')
-# df = mars.main()
-
-# mars = ParseXsens('./data/18_03_2021/xsens_08.txt')
-# df = mars.main()
-
-# mars = ParseXsens('./data/18_03_2021/xsens_09.txt')
-# df = mars.main()
-
-# mars = ParseXsens('./data/18_03_2021/xsens_10.txt')
-# df = mars.main()
