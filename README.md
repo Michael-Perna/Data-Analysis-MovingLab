@@ -1,7 +1,7 @@
 # MovingLab
 
 # Description 
-NTRIP client for Swisspos,
+Data Analysis of all measurements used during the MovingLAb project
 
 0. **rmv-files-by-format.py** : Used to clean the DataBase repository from ghosts files of previous computations (GUI not available)
 
