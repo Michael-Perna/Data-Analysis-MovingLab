@@ -8,7 +8,6 @@ Created on Mon Oct 11 11:31:51 2021.
 from lib import ParseTheo, AnalysisTheo, AnalysisTheo2
 
 
-# Variables decleration utcrcf3339 and distance from the reference
 base = './data/'
 shpFilePath = './maps/railways/foward_track_adjusted.shp'
 
@@ -40,11 +39,6 @@ shp5b = base + 'line/' + 'trajectoire_5_st2' + ".shp"
 swipos_ublox = track_file + 'swipos_ublox.csv'
 swipos_netr9 = track_file + 'swipos_NetR9-copy__10_30_10_11_10_48.result'
 sapcorda = track_file + 'sapcorda.result'
-# A = AnalysisTheo2(df2a,df2b,shp5a,shp5b,shpFilePath, swipos_netr9, swipos_ublox, sapcorda)
-# B = AnalysisTheo2(df5a,df5b,shp5a,shp5b,shpFilePath, swipos_netr9, swipos_ublox, sapcorda)
-# A.main()
-# B.main()
-
 # Analyse 1
 do_plot0 = False
 if do_plot0:

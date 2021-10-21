@@ -101,8 +101,8 @@ def _pos_dict():
 
 
 def _import_df(filename: str, header: dict, types: dict, dateFormat: str,
-               utf8 = True):
-    """
+               utf8=True):
+    r"""
     Import dataframe from textfile.
 
     Parameters
@@ -168,29 +168,29 @@ def _import_df(filename: str, header: dict, types: dict, dateFormat: str,
     return df, valid
 
 
-def getFlag(df, navModeFlag, fixTypeFlag):
+def _getFlag(df, navModeFlag, fixTypeFlag):
     """Assing string flag to parameter for more readability."""
     # Assing navigation mode flag (NMEA message)
     if 'navMode' in df.columns:
         df['navMode'] = df['navMode'].replace(navModeFlag)
 
     # Assing fix type flag (xsens message)
-    if 'posMode' in df.columns:
+    if 'fixtype' in df.columns:
         df['fixtype'] = df['fixtype'].replace(fixTypeFlag)
 
     # Assing position mode flag (NMEA message)
-    if 'fixtype' in df.columns:
+    if 'posMode' in df.columns:
         posMode = _pos_dict()
         df['posMode'] = df['posMode'].replace(posMode['No Fix'], 'No Fix')
         df['posMode'] = df['posMode'].replace(
             posMode['Autonomous GNSS fix'], 'Autonomous GNSS fix'
-            )
+        )
         df['posMode'] = df['posMode'].replace(
             posMode['Differential GNSS fix'], 'Differential GNSS fix'
-            )
+        )
         df['posMode'] = df['posMode'].replace(
             posMode['RTK float'], 'RTK float'
-            )
+        )
         df['posMode'] = df['posMode'].replace(
             posMode['RTK fixed'], 'RTK fixed'
         )
@@ -212,12 +212,12 @@ def nmea_df(filename):
     """
     dateFormat = '%Y-%m-%dT%H:%M:%SZ'
 
-    global getFlag
+    global _getFlag
 
     df, valid = _import_df(filename, header=global_.header1,
                            types=global_.types1, dateFormat=dateFormat)
-    df = getFlag(df, navModeFlag=global_.navModeFlag,
-                 fixTypeFlag=global_.qualityFlag)
+    df = _getFlag(df, navModeFlag=global_.navModeFlag,
+                  fixTypeFlag=global_.qualityFlag)
 
     return df, valid
 
@@ -245,8 +245,8 @@ def result_df(filename, columns):
         df = df[columns]
 
     # Assing name to respective flag
-    df = getFlag(df, navModeFlag=global_.navModeFlag,
-                 fixTypeFlag=global_.qualityFlag)
+    df = _getFlag(df, navModeFlag=global_.navModeFlag,
+                  fixTypeFlag=global_.qualityFlag)
 
     return df, valid
 
@@ -297,8 +297,8 @@ def xsense_df(filename, columns):
         df = df[columns]
 
     # Assing name to respective flag
-    df = getFlag(df, navModeFlag=global_.navModeFlag,
-                 fixTypeFlag=global_.qualityFlag)
+    df = _getFlag(df, navModeFlag=global_.navModeFlag,
+                  fixTypeFlag=global_.qualityFlag)
 
     return df, valid
 
@@ -337,38 +337,7 @@ def theo_df(filename: str, columns: list):
         df = df[columns]
 
     # Assing name to respective flag
-    df = getFlag(df, navModeFlag=global_.navModeFlag,
-                 fixTypeFlag=global_.qualityFlag)
+    df = _getFlag(df, navModeFlag=global_.navModeFlag,
+                  fixTypeFlag=global_.qualityFlag)
 
     return df, valid
-
-    # # Create Data Frame
-    # columns = global_.header3
-
-    # df_out = pd.DataFrame(
-    #     data=None, index=None, columns=columns, dtype=None, copy=False)
-
-
-    # # Open txt file
-    # df = pd.read_csv(self.txt_file, sep='\t', skiprows=[1],
-    #                  encoding='unicode_escape', dtype=str)
-
-    # # Convert UTC date into utcrcf3339 standard
-    # df['date'] = df['Year'] + df['Month'].str.zfill(2) +\
-    #     df['Day'].str.zfill(2) + 'T' + \
-    #     df['Hour'].str.zfill(2) +\
-    #     df['Minute'].str.zfill(2) + df['Second']
-
-    # df['timestamp'] = df['date'].map(lambda x: timetools.utcrcf3339(x))
-
-    # df = geolib.distance_df2shpfile(df, shpfile=self.shpfile,
-    #                                 x='East', y='North')
-
-    # # Fill output
-    # df_out['timestamp'] = df['timestamp']
-    # df_out['lon'] = df['East']
-    # .df_out['lat'] = df['North']
-    # self.df_out['alt'] = df['Altitude']
-    # self.df_out['dist'] = df['dist']
-
-    # return self.df_out

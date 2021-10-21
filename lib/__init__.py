@@ -7,6 +7,9 @@
 # global variables
 from . import global_
 
+# function's inputs
+from . import input_
+
 # =============================================================================
 # Time management
 # =============================================================================
@@ -29,3 +32,11 @@ from .parse_xsens import ParseXsens
 # =============================================================================
 from .analyse_theodolites import AnalysisTheo
 from .analyse_theodolites import AnalysisTheo2
+
+# =============================================================================
+# Gui
+# =============================================================================
+from lib.gui import gui_precision
+from lib.gui import gui_plot
+from lib.gui import gui_concatTracks
+from lib.gui import gui_statistic

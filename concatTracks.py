@@ -1,44 +1,46 @@
-
 # -*- coding: utf-8 -*-
 """
-Created on Tue Dec  8 13:34:54 2020
+Created on Tue Dec  8 13:34:54 2020.
 
 @author: Michael
 """
+from geopandas.tools import sjoin
+import geopandas as gpd
+import lib.gui_concatTracks as gui
+import errno
+import os
+from lib.import_df import ResultDf
 import warnings
 warnings.simplefilter(action='ignore')
-from lib.import_df import ResultDf
-import os
-import errno
-import lib.gui_concatTracks as gui
-import geopandas as gpd
-from geopandas.tools import sjoin
 
 
 class Concat():
+
     def __init__(self, data_dir, receiver):
         self.zone_name = ''
         self.main_dir = './Analyse/DataBase'
         self.save_dir = './res/data/'
         self.loop_shp = '.\\maps\\railways\\loops.shp'
-        self.zone = '.\\maps\\qgis-analysis\\areas-of-interest\\'+  self.zone_name[1:]+'.shp'
+        self.zone = '.\\maps\\qgis-analysis\\areas-of-interest\\' + \
+            self.zone_name[1:]+'.shp'
 
         self.receiver = receiver
         self.ext = '.results'
         self.data_dir = data_dir + self.ext
         self.foldername = data_dir
-        self.outfile_name = self.save_dir + self.receiver+ self.zone_name + '.data'
-        self.columns=['timestamp','lon','lat','posMode','numSV','difAge',
-                       'HDOP','dist']
+        self.outfile_name = self.save_dir + self.receiver + self.zone_name + '.data'
+        self.columns = ['timestamp', 'lon', 'lat', 'posMode', 'numSV', 'difAge',
+                        'HDOP', 'dist']
 
     # Taken from https://stackoverflow.com/a/600612/119527
     def mkdir_p(self, path):
         try:
             os.makedirs(path)
-        except OSError as exc: # Python >2.5
+        except OSError as exc:  # Python >2.5
             if exc.errno == errno.EEXIST and os.path.isdir(path):
                 pass
-            else: raise
+            else:
+                raise
 
     def scanDir(self):
 
@@ -48,7 +50,7 @@ class Concat():
                 self.scanDir()
 
             if os.path.isfile(entry.path):
-                if os.stat(entry.path).st_size == 0: # remove empty file
+                if os.stat(entry.path).st_size == 0:  # remove empty file
                     os.remove(entry.path)
                     continue
 
@@ -60,8 +62,8 @@ class Concat():
 
                     # Importation of tracks as Dataframe
                     timeseries = ResultDf(entry.path, self.columns)
-                    df,valid = timeseries.get_df()
-                    print(entry.path , valid)
+                    df, valid = timeseries.get_df()
+                    print(entry.path, valid)
                     # In case of the number of columns mismatch
                     if not valid:
                         continue
@@ -69,15 +71,15 @@ class Concat():
                     # ========= Zone analysis =========
 
                     # Remove NaN longitude and latitude for the gpd function
-                    df2 = df[df['lon'].notna()] # df without NaN
+                    df2 = df[df['lon'].notna()]  # df without NaN
                     df1 = df[df['lon'].isna()]  # df wih only Nan
 
                     # Transform lon, lan point to shapefile points
                     points = gpd.GeoDataFrame(df2,
-                                     geometry=gpd.points_from_xy(df2.lon,
-                                                                 df2.lat))
+                                              geometry=gpd.points_from_xy(df2.lon,
+                                                                          df2.lat))
                     pointFrame = gpd.GeoDataFrame(
-                                    geometry=gpd.GeoSeries(points.geometry))
+                        geometry=gpd.GeoSeries(points.geometry))
 
                     # Upload unsafe area shapefile
                     poly = gpd.GeoDataFrame.from_file(self.zone)
@@ -89,7 +91,7 @@ class Concat():
                     if not pointInPolys.index.is_unique:
                         pointInPolys.index.duplicated()
                         pointInPolys = pointInPolys.loc[
-                                        ~pointInPolys.index.duplicated(), :]
+                            ~pointInPolys.index.duplicated(), :]
 
                     # Keep only point outside the join
                     df2 = df2[~pointInPolys.id.isnull()]
@@ -106,15 +108,15 @@ class Concat():
                     continue to get GPS signals inside the depôt which is near the
                     railsway and it polluate the results. '''
                     # Remove NaN longitude and latitude for the gpd function
-                    df2 = df3[df3['lon'].notna()] # df without NaN
+                    df2 = df3[df3['lon'].notna()]  # df without NaN
                     df1 = df3[df3['lon'].isna()]  # df wih only Nan
 
                     # Transform lon, lan point to shapefile points
                     points = gpd.GeoDataFrame(df2,
-                                     geometry=gpd.points_from_xy(df2.lon,
-                                                                 df2.lat))
+                                              geometry=gpd.points_from_xy(df2.lon,
+                                                                          df2.lat))
                     pointFrame = gpd.GeoDataFrame(
-                                    geometry=gpd.GeoSeries(points.geometry))
+                        geometry=gpd.GeoSeries(points.geometry))
 
                     # Upload unsafe area shapefile
                     poly = gpd.GeoDataFrame.from_file(self.loop_shp)
@@ -126,7 +128,7 @@ class Concat():
                     if not pointInPolys.index.is_unique:
                         pointInPolys.index.duplicated()
                         pointInPolys = pointInPolys.loc[
-                                        ~pointInPolys.index.duplicated(), :]
+                            ~pointInPolys.index.duplicated(), :]
 
                     # Keep only point outside the join
                     df2 = df2[pointInPolys.id.isnull()]
@@ -135,19 +137,18 @@ class Concat():
                     df3 = df2.append(df1)
 
                     # Limit distance to mm to save memory space
-                    df3['dist']=df3['dist'].round(3)
+                    df3['dist'] = df3['dist'].round(3)
 
                     # Write only certain columns
                     df3.to_csv(self.outfile,
-                            sep=',',
-                            na_rep='',
-                            columns=self.columns,
-                            header=False,
-                            index=False,
-                            line_terminator = '\n')
+                               sep=',',
+                               na_rep='',
+                               columns=self.columns,
+                               header=False,
+                               index=False,
+                               line_terminator='\n')
 
                     self.outfile.close()
-
 
 
 # Call the interface class
