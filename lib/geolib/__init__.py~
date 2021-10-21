@@ -1,0 +1,17 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""
+Created on Thu Oct 14 10:08:57 2021.
+
+@author: michael
+"""
+
+# Package for swiss projection done by @Daniel Wili
+# FIXME: I think is the wrong way to call a packages (package=module)
+import swiss_projection
+
+# =============================================================================
+# Geoinformatics tools
+# =============================================================================
+from geotools import distance_pt2shpline
+from geotools import pt2shpline

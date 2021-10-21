@@ -1,6 +1,6 @@
 import numpy as np
 import math
-import ellipsoid
+from .swiss_projection import ellipsoid
 
 
 def deg_to_dms(deg, type='lat'):
