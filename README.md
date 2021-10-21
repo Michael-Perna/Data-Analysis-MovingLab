@@ -27,7 +27,6 @@ analyses the meausures taken by theodolites
 Analyse the xsens measurements
 
 
-# Table-of-Content
 # Installation
 # Contributing
 Daniel Willi: lib/geolib/swissprojection (under license)
@@ -36,3 +35,9 @@ Daniel Willi: lib/geolib/swissprojection (under license)
 
 # Further step
 concatTracks should be removed and integrate inside relative-precision as this is an inefficient way to proced. Which duplicate the data in a new format and it increase the saving space. 
+
+Compare GNSS receivers epochs-by-epochs
+
+Improve theodolites anaysis
+
+End xsens IMU amalysis
