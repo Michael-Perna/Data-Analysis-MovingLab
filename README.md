@@ -34,10 +34,14 @@ Daniel Willi: lib/geolib/swissprojection (under license)
 # License
 
 # Further step
-concatTracks should be removed and integrate inside relative-precision as this is an inefficient way to proced. Which duplicate the data in a new format and it increase the saving space. 
+## 1. Analysis
+- Compare GNSS receivers epochs-by-epochs
 
-Compare GNSS receivers epochs-by-epochs
+- Improve theodolites anaysis
 
-Improve theodolites anaysis
+- End xsens IMU amalysis
 
-End xsens IMU amalysis
+## 2. Optimize Code
+- concatTracks should be removed and integrate inside relative-precision as this is an inefficient way to proced. Which duplicate the data in a new format and it increase the saving space. 
+
+
