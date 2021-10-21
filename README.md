@@ -21,9 +21,9 @@ This script merge all .results data from the database of a specific reveciver an
 this script compute an ensemble of statistical analysis and plot on each separate receiver (it read the data inside ./res/data/ with the format .data). No GUI available. It also create as output a .csv file usefull to work with the positions in qgis for example. 
 
 ## Referenceses: theodolites & IMU 
-### **theodolites**
+### **theodolites.py**
 analyses the meausures taken by theodolites
-### **xsens**
+### **xsens.py**
 Analyse the xsens measurements
 
 
