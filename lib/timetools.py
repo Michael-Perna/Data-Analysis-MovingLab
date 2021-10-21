@@ -35,6 +35,7 @@ def utcrcf3339(date: str):
 
 
 def sync(df1, df2, time_format1: str, time_format2: str):
+    # BUG: This function could not work as epected
     """
     Synchronize df1 and df2 with geopandas.align function.
 

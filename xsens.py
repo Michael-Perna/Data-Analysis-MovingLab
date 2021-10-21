@@ -8,8 +8,9 @@ Created on Mon Oct 11 11:31:51 2021.
 """
 
 # Standard packackes
+from tqdm import tqdm
+import geopandas as gpd
 import os
-import pandas as pd
 
 # Local Packages: Parser
 from lib import ParseXsens
@@ -18,28 +19,32 @@ from lib import xsense_df
 
 # Local Packages: Tools
 from lib import geolib as gl
-from lib import timetools
+from lib import timetools as tt
+from lib import input_
 
 # Local Packages: Plots
 from lib.plot import plot_trace
-
-# Global variables
-from lib import global_
-
 
 # =============================================================================
 # Local variables
 # =============================================================================
 
-# Files path
-shpFileRail = './maps/railways/foward_track_adjusted.shp'
+# Xsens
 shpFileXsens = './data/xsens/18_03_2021/xsens_trace_18_03_2021.shp'
-fileTheo5a = './data/theodolites/trajectoire_5_st1.txt'
-fileTheo5b = './data/theodolites/trajectoire_5_st2.txt'
-file_xsens = './data/xsens/18_03_2021/snmea/xsens_18_03_2021.snmea'
 xsens_dir = './data/xsens/18_03_2021/snmea/'
+file_xsens = './data/xsens/18_03_2021/snmea/xsens_18_03_2021.snmea'
 
-# Parameters
+# Theodolites
+root5a, _ = os.path.splitext(input_.fileTheo5a)
+root5b, _ = os.path.splitext(input_.fileTheo5b)
+shpFileTheo5a = root5a + '.shp'
+shpFileTheo5b = root5b + '.shp'
+
+# Load rails als shapefile
+rail_back = gpd.read_file(input_.rail_back)
+rail_forth = gpd.read_file(input_.rail_forth)
+
+# Local Parameters
 do_parse = False
 save = False
 do_trace = False
@@ -75,7 +80,8 @@ def load():
     print('\n\n')
     for _n in range(11):
         _num = str(_n).zfill(2)
-        filepath = './data/xsens/18_03_2021/snmea/mn95_xsens_' + _num + '.snmea'
+        filepath = './data/xsens/18_03_2021/snmea/mn95_xsens_' + _num + \
+            '.snmea'
         if _n == 0:
             print('Loading : ', filepath)
             df, valid = xsense_df(filepath, columns=columns)
@@ -97,7 +103,7 @@ if do_parse:
 df, valid = load()
 
 # Change time format
-df['timestamp'] = df['timestamp'].map(lambda x: timetools.utcrcf3339(str(x)))
+df['timestamp'] = df['timestamp'].map(lambda x: tt.utcrcf3339(str(x)))
 
 # OPTIMIZE: very very slow process because HUUuuge file size
 if do_trace:
@@ -108,42 +114,48 @@ if do_trace:
 # Xsens: Exploratory analysis
 # =============================================================================
 
-print('Plotting xsens trace')
-plot_trace(rail_shp_path=shpFileRail, shp_path=shpFileXsens,
-           receiver_name='xsens', df=df)
+# print('Plotting xsens trace')
+# plot_trace(rail_shp_path=rail_forth, shp_path=shpFileXsens,
+#            receiver_name='xsens', df=df)
 
 # =============================================================================
 # Load References: theodolites, rail
 # =============================================================================
-root5a, _ = os.path.splitext(fileTheo5a)
-root5b, _ = os.path.splitext(fileTheo5b)
-shpFileTheo5a = root5a + '.shp'
-shpFileTheo5b = root5b + '.shp'
-
 # Extract theodolites data into dataframe
-df5a, _ = theo_df(fileTheo5a, columns)
-df5b, _ = theo_df(fileTheo5b, columns)
+print('Load Theodolites dataframe')
+df5a, _ = theo_df(input_.fileTheo5a, columns)
+df5b, _ = theo_df(input_.fileTheo5b, columns)
 
-# Create line for the theodolites measures
-t5a_shp = gl.pt2shpline(df=df5a, shpfile_out=shpFileTheo5a)
-t5b_shp = gl.pt2shpline(df=df5b, shpfile_out=shpFileTheo5b)
+# # Create line for the theodolites measures
+# print('Create Trace of the Theodolites')
+# t5a_shp = gl.pt2shpline(df=df5a, shpfile_out=shpFileTheo5a)
+# t5b_shp = gl.pt2shpline(df=df5b, shpfile_out=shpFileTheo5b)
 
 # =============================================================================
-# Xsens Precision
+# Xsens Precision (A): Theodolites
 # =============================================================================
+# Get distance from thedolites shape LINE
+df_sync = tt.sync(df, df5a,
+                  time_format1='%Y-%m-%dT%H:%M:%S.%fZ',
+                  time_format2='%Y-%m-%dT%H:%M:%S.%fZ')
 
-# # Get distance from thedolites shape LINE
-# df_sync = tt.sync(df, df5a,
-#                   time_format1='%Y-%m-%dT%H:%M:%S.%fZ',
-#                   time_format2='%Y-%m-%dT%H:%M:%S.%fZ')
-# df_sync = Tdf_sync[~df_sync['timestamp'].isna()].reset_index()
-# df_sync = gl.distance_df2shpfile(df_sync, x='lon', y='lat',
-#                                  shpfile=shpFileTheo5a)
-# df5b = gl.distance_df2shpfile(df5b, x='lon', y='lat', shpfile=shpFileTheo5b)
+# Reset Index
+df_sync = df_sync[~df_sync['timestamp'].isna()].reset_index()
 
+# Measure distance between POINT and reference LINE
+df_sync = gl.distance_df2shpfile(df_sync, x='lon', y='lat',
+                                 shpfile=shpFileTheo5a)
+df5b = gl.distance_df2shpfile(df5b, x='lon', y='lat', shpfile=shpFileTheo5b)
 
-# create shape line from the xsens measures
+# =============================================================================
+# Xsens Precision (B): Railways
+# =============================================================================
+# Split Track
+track_index = gl.split_track(df)
 
-# Used it to compare receiver on the whole traject
-
-# Make some nice plot
+# Mesure distance to the reference rail
+loop = tqdm(total=100, position=0, desc='Calculating distances')
+for track in track_index:
+    df = gl.dist2rail(df[track[0]:track[1]], rail_back, rail_forth)
+    loop.update(1)
+loop.close()

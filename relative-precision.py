@@ -31,8 +31,8 @@ class GetGnssError:
         """Init."""
         self.filename = filename
         # Load rails als shapefile
-        self.rail_back = gpd.read_file(input_.rail_forth)
-        self.rail_forth = gpd.read_file(input_.rail_back)
+        self.rail_back = gpd.read_file(input_.rail_back)
+        self.rail_forth = gpd.read_file(input_.rail_forth)
 
     def main(self):
         """Do all neccessary step."""
@@ -56,14 +56,9 @@ class GetGnssError:
         # Reinsert in df_full
         df_full.loc[df.index] = df
 
-        # Apply time format
-        df_full['timestamp'] = pd.to_datetime(df_full['timestamp'],
-                                              format='%Y-%m-%dT%H:%M:%SZ')
-
         # ----------------------------------------------------------------
         # Split Track
         # ----------------------------------------------------------------
-
         track_index = gl.split_track(df_full)
 
         # ----------------------------------------------------------------
@@ -73,8 +68,8 @@ class GetGnssError:
         # Loop over each track
         loop = tqdm(total=100, position=0, desc='Calculating distances')
         for track in track_index:
-            df = gl.get_distance(df_full[track[0]:track[1]],
-                                 self.rail_back, self.rail_forth)
+            df = gl.dist2rail(df_full[track[0]:track[1]],
+                              self.rail_back, self.rail_forth)
             gl.save_track(df, self.filename)
             loop.update(1)
         loop.close()

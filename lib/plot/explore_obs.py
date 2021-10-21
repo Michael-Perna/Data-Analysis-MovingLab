@@ -35,17 +35,17 @@ def plot_trace(rail_shp_path: str, shp_path: str, receiver_name: str,
     rail = shapefile.Reader(rail_shp_path)
 
     # PLot observations
-    plt.scatter(df['lon'], df['lat'])
+    plt.scatter(df['lon'], df['lat'], label='xsens scatter plot')
 
-    for shape in shp.shapeRecords():
-        x = [i[0] for i in shape.shape.points[:]]
-        y = [i[1] for i in shape.shape.points[:]]
-        plt.plot(x, y, label=receiver_name)
+    # for shape in shp.shapeRecords():
+    #     x = [i[0] for i in shape.shape.points[:]]
+    #     y = [i[1] for i in shape.shape.points[:]]
+    #     plt.plot(x, y, label=receiver_name)
 
     for shape in rail.shapeRecords():
         x = [i[0] for i in shape.shape.points[:]]
         y = [i[1] for i in shape.shape.points[:]]
-        plt.plot(x, y)
+        plt.plot(x, y, label='Railways')
 
     # # Box / axis Limit
     # _xmin = df['lon'].min()-100

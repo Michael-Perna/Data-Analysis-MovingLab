@@ -51,7 +51,7 @@ def _is_inloop(x: float, y: float):
     # or _is_inbox(x,y,box5)
 
 
-def split_track(df_full):
+def split_track(df):
     """Split the data series in track data that are on the same rail.
 
     Description
@@ -64,13 +64,27 @@ def split_track(df_full):
             num°Track: index_start, index_end
             ---------------------------------
               0         52            11120
+
+    Warning
+    -------
+        This funcfion is used by relative-precision for the GNSS receivers
+        analysis and by the xsens.py code for the sxens IMU analysis.
     """
-    lon = pd.DataFrame(df_full['lon']).to_numpy()
-    lat = pd.DataFrame(df_full['lat']).to_numpy()
+    lon = pd.DataFrame(df['lon']).to_numpy()
+    lat = pd.DataFrame(df['lat']).to_numpy()
+
+    # Apply time format
+    # TODO: Not right way to do
+    try:
+        df['timestamp'] = pd.to_datetime(df['timestamp'],
+                                         format='%Y-%m-%dT%H:%M:%S.%fZ')
+    except:
+        df['timestamp'] = pd.to_datetime(df['timestamp'],
+                                         format='%Y-%m-%dT%H:%M:%SZ')
 
     # Loop initialization
     loop = tqdm(total=len(lon)-4, desc="Dividing full track ..", position=0)
-    track_index = np.zeros((100, 2)).astype(int)     # 100 i a guess
+    track_index = np.zeros((1000, 2)).astype(int)     # 100 i a guess
     n = 0
     _start = False
 
@@ -87,7 +101,7 @@ def split_track(df_full):
             n += 1
             _start = False
 
-        delta = df_full['timestamp'].iloc[i+1]-df_full['timestamp'].iloc[i]
+        delta = df['timestamp'].iloc[i+1]-df['timestamp'].iloc[i]
 
         # If the there is a time gap great than five minutes break
         if delta.total_seconds() > 300 and _start is True:
