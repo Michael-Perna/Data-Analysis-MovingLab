@@ -43,15 +43,15 @@ class GetGnssError:
         df_full, valid = nmea_df(self.filename)
 
         # ----------------------------------------------------------------
-        # Change Projection
+        # Coordinate Transformation : MN95 projection
         # ----------------------------------------------------------------
         # Drop rows where there is no coordinates (No fix)
         df = df_full.dropna(subset=['lat', 'lon'])
 
         if 'sapcorda' in self.filename:
-            df = gl.mn95_projection(df, degmin=True, itrf14=True)
+            df = gl.mn95_projection(df, degmin=True, itrf14=True, std=True)
         else:
-            df = gl.mn95_projection(df, degmin=True)
+            df = gl.mn95_projection(df, degmin=True, std=True)
 
         # Reinsert in df_full
         df_full.loc[df.index] = df
@@ -68,8 +68,10 @@ class GetGnssError:
         # Loop over each track
         loop = tqdm(total=100, position=0, desc='Calculating distances')
         for track in track_index:
-            df = gl.dist2rail(df_full[track[0]:track[1]],
-                              self.rail_back, self.rail_forth)
+            df = gl.err2rail(df_full[track[0]:track[1]],
+                             self.rail_back, self.rail_forth)
+            # Remove unsafe area
+            df = gl.rmv_unsafe_points(df)
             gl.save_track(df, self.filename)
             loop.update(1)
         loop.close()
