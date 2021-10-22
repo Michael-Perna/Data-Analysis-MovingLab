@@ -4,46 +4,44 @@ Created on Tue Dec  8 13:34:54 2020.
 
 @author: Michael
 """
-from geopandas.tools import sjoin
-import geopandas as gpd
-import lib.gui_concatTracks as gui
+
+# Import standard modules$
 import errno
 import os
-from lib.import_df import ResultDf
-import warnings
-warnings.simplefilter(action='ignore')
+
+# Import local modules
+from lib import gui_concatTracks as gui
+from lib import geolib as gl
+from lib import result_df
+from lib import input_
+
+_columns = ['timestamp', 'lon', 'lat', 'posMode', 'numSV', 'difAge',
+            'HDOP', 'dist']
 
 
 class Concat():
+    """Concat all track wanted for the analysis."""
 
-    def __init__(self, data_dir, receiver):
-        self.zone_name = ''
-        self.main_dir = './Analyse/DataBase'
-        self.save_dir = './res/data/'
-        self.loop_shp = '.\\maps\\railways\\loops.shp'
-        self.zone = '.\\maps\\qgis-analysis\\areas-of-interest\\' + \
-            self.zone_name[1:]+'.shp'
+    def __init__(self, folder_name: str, receiver_name: str, zone: str,
+                 save_csv: bool, columns=_columns):
+        """Init."""
+        self.foldername = folder_name
+        self.receiver_name = receiver_name
+        self.zone_file = zone
+        self.save_csv = save_csv
+        self.columns = columns
 
-        self.receiver = receiver
-        self.ext = '.results'
-        self.data_dir = data_dir + self.ext
-        self.foldername = data_dir
-        self.outfile_name = self.save_dir + self.receiver + self.zone_name + '.data'
-        self.columns = ['timestamp', 'lon', 'lat', 'posMode', 'numSV', 'difAge',
-                        'HDOP', 'dist']
+        self.files = []
+        self.outfile_name = input_.results + receiver_name +\
+            '_' + input_.zone_dict[zone] + '.csv'
 
-    # Taken from https://stackoverflow.com/a/600612/119527
-    def mkdir_p(self, path):
-        try:
-            os.makedirs(path)
-        except OSError as exc:  # Python >2.5
-            if exc.errno == errno.EEXIST and os.path.isdir(path):
-                pass
-            else:
-                raise
+        if not os.path.isdir(input_.results):
+            os.makedirs(input_.results)
+            print("created folder : ", input_.results)
 
     def scanDir(self):
-
+        # FIXME: not right way to do function input output
+        """Scan self.folder name directory and return a list."""
         for entry in os.scandir(self.foldername):
             if os.path.isdir(entry.path):
                 self.foldername = entry
@@ -56,105 +54,38 @@ class Concat():
 
                 root, extension = os.path.splitext(entry.path)
                 head, tail = os.path.split(root)
-                if extension == self.ext and self.receiver in tail:
-                    # Open outpufile in append mode
-                    self.outfile = open(self.outfile_name, 'ab')
 
-                    # Importation of tracks as Dataframe
-                    timeseries = ResultDf(entry.path, self.columns)
-                    df, valid = timeseries.get_df()
-                    print(entry.path, valid)
-                    # In case of the number of columns mismatch
-                    if not valid:
-                        continue
+                if extension == '.results' and self.receiver_name in tail:
+                    self.files.append(entry.path)
 
-                    # ========= Zone analysis =========
+    def main(self):
 
-                    # Remove NaN longitude and latitude for the gpd function
-                    df2 = df[df['lon'].notna()]  # df without NaN
-                    df1 = df[df['lon'].isna()]  # df wih only Nan
+        self.scanDir()
+        for file in self.files:
+            if self.save_csv:
 
-                    # Transform lon, lan point to shapefile points
-                    points = gpd.GeoDataFrame(df2,
-                                              geometry=gpd.points_from_xy(df2.lon,
-                                                                          df2.lat))
-                    pointFrame = gpd.GeoDataFrame(
-                        geometry=gpd.GeoSeries(points.geometry))
+                # Open outpufile in append mode
+                self.outfile = open(self.outfile_name, 'ab')
 
-                    # Upload unsafe area shapefile
-                    poly = gpd.GeoDataFrame.from_file(self.zone)
+            # Importation of tracks as Dataframe
+            df, valid = result_df(file, self.columns)
+            print(file, valid)
 
-                    # Join Both shapefile
-                    pointInPolys = sjoin(pointFrame, poly, how='left')
+            # In case of the number of columns mismatch
+            if not valid:
+                continue
 
-                    # Remove index with duplicate values
-                    if not pointInPolys.index.is_unique:
-                        pointInPolys.index.duplicated()
-                        pointInPolys = pointInPolys.loc[
-                            ~pointInPolys.index.duplicated(), :]
+            df = gl.select_zone(df, self.zone_file)
 
-                    # Keep only point outside the join
-                    df2 = df2[~pointInPolys.id.isnull()]
-
-                    # Merge to the entire df to preserve epochs without position
-                    df3 = df2.append(df1)
-
-                    # ========= Remove those unsafe ans biased area for the analysis =========
-
-                    ''' The tram when is in loops or bus station with multiple
-                    tram platform it is not possible for the algorith to predict
-                    in which rails the tram will be. Therefore I cannot apply
-                    right reference and I remove those region. Morover the tram
-                    continue to get GPS signals inside the depôt which is near the
-                    railsway and it polluate the results. '''
-                    # Remove NaN longitude and latitude for the gpd function
-                    df2 = df3[df3['lon'].notna()]  # df without NaN
-                    df1 = df3[df3['lon'].isna()]  # df wih only Nan
-
-                    # Transform lon, lan point to shapefile points
-                    points = gpd.GeoDataFrame(df2,
-                                              geometry=gpd.points_from_xy(df2.lon,
-                                                                          df2.lat))
-                    pointFrame = gpd.GeoDataFrame(
-                        geometry=gpd.GeoSeries(points.geometry))
-
-                    # Upload unsafe area shapefile
-                    poly = gpd.GeoDataFrame.from_file(self.loop_shp)
-
-                    # Join Both shapefile
-                    pointInPolys = sjoin(pointFrame, poly, how='left')
-
-                    # Remove index with duplicate values
-                    if not pointInPolys.index.is_unique:
-                        pointInPolys.index.duplicated()
-                        pointInPolys = pointInPolys.loc[
-                            ~pointInPolys.index.duplicated(), :]
-
-                    # Keep only point outside the join
-                    df2 = df2[pointInPolys.id.isnull()]
-
-                    # Merge to the entire df to preserve epochs without position
-                    df3 = df2.append(df1)
-
-                    # Limit distance to mm to save memory space
-                    df3['dist'] = df3['dist'].round(3)
-
-                    # Write only certain columns
-                    df3.to_csv(self.outfile,
-                               sep=',',
-                               na_rep='',
-                               columns=self.columns,
-                               header=False,
-                               index=False,
-                               line_terminator='\n')
-
-                    self.outfile.close()
+            if self.save_csv:
+                # Write only certain columns
+                df.to_csv(self.outfile, sep=',', na_rep='',
+                          columns=self.columns, header=False, index=False,
+                          line_terminator='\n')
+            return df
 
 
-# Call the interface class
-app = gui.Interface()
-app.title('Concatenate file by day')
-app.mainloop()
-data_dir, receiver = app.output()
-
-Concat(data_dir, receiver).scanDir()
+folder_name = './DataBase'
+receiver_name = 'sapcorda'
+zone = input_.city_NS
+df = Concat(folder_name, receiver_name, zone, save_csv=True).main()
