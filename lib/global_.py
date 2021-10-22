@@ -134,11 +134,12 @@ header2 = ['timestamp',
            'stdMinor',
            'orient',
            'geometry',
-           'dist',
            'pproj',
            'err',
            'Sytram',
-           'Smax'
+           'Sxtram',
+           'alpha',
+           'dist'
            ]
 
 types2 = {'timestamp': str,
@@ -170,7 +171,7 @@ types2 = {'timestamp': str,
           'pproj': float,
           'err': float,
           'Sytram': float,
-          'Smax': float
+          'Sxtram': float
           }
 
 # =============================================================================

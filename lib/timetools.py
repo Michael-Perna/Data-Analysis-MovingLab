@@ -34,7 +34,8 @@ def utcrcf3339(date: str):
     return _date_utc_zformat
 
 
-def sync(df1, df2, time_format1: str, time_format2: str):
+def sync(df1, df2, time_format1='%Y-%m-%dT%H:%M:%S.%fZ',
+         time_format2='%Y-%m-%dT%H:%M:%S.%fZ'):
     # BUG: This function could not work as epected
     """
     Synchronize df1 and df2 with geopandas.align function.
@@ -52,8 +53,10 @@ def sync(df1, df2, time_format1: str, time_format2: str):
         Survey of the first thetolite, it must have a 'timestamp' column.
     time_format1 : str
         String that describe the format of the timestamp column in df1.
+        Default value '%Y-%m-%dT%H:%M:%S.%fZ'
     time_format2 : str
         String that describe the format of the timestamp column in df1.
+        Default value '%Y-%m-%dT%H:%M:%S.%fZ'
 
 
     Returns

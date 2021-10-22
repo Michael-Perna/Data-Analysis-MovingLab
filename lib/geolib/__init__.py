@@ -30,5 +30,12 @@ from .find_tramway import classify_track
 # Measures GNSS error by the Rail references
 # =============================================================================
 from .distance2rails import dist2rail
+from .distance2rails import err2rail
 from .distance2rails import save_track
 from .distance2rails import save_all
+
+# =============================================================================
+# Select receiver measurement by georaphical area
+# =============================================================================
+from .select_area import rmv_unsafe_points
+from .select_area import select_zone

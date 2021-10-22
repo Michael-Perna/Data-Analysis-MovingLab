@@ -240,7 +240,7 @@ def result_df(filename, columns):
     df, valid = _import_df(filename, header=global_.header2,
                            types=global_.types2, dateFormat=dateFormat)
 
-    # Select only column accordint to columns list
+    # Select only column according to columns list
     if valid:
         df = df[columns]
 

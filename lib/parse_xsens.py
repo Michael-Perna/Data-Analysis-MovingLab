@@ -63,7 +63,8 @@ class ParseXsens:
         df['date'] = df['UTC_Year'] + df['UTC_Month'].str.zfill(2) +\
             df['UTC_Day'].str.zfill(2) + 'T' + \
             df['UTC_Hour'].str.zfill(2) +\
-            df['UTC_Minute'].str.zfill(2) + df['UTC_Second']
+            df['UTC_Minute'].str.zfill(2) + df['UTC_Second'] + '.' +\
+            df['UTC_Nano']
 
         # OPTIMIZE: very slow process
         df['timestamp'] = df['date'].map(lambda x: utcrcf3339(x))
