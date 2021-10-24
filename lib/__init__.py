@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""Modules used in MovingLAb Project."""
+"""Modules used in MovingLab Project."""
 
 # TODO: __all__ = []
 
@@ -40,3 +40,6 @@ from lib.gui import gui_precision
 from lib.gui import gui_plot
 from lib.gui import gui_concatTracks
 from lib.gui import gui_statistic
+
+# Concatanate all database tracks into single dataframe
+from .concatTracks import Concat
