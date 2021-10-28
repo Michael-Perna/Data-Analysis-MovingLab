@@ -33,12 +33,12 @@ analyses the meausures taken by theodolites
 ### **xsens.py**
 Analyse the xsens measurements
 
+# Contributing & Credits
+- Leïla Kislig : supervisor at swisstopo
+- Jan Skaloud : academic supervisor at EPFL
+- Daniel Willi : lib/geolib/swissprojection (under license)
 
-# Installation
-# Contributing
-Daniel Willi: lib/geolib/swissprojection (under license)
-# Credits & References
-# License
+I thank the Transport Public Genevois (TPG) for their help and support
 
 # Further step
 ## 1. Analysis
