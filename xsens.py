@@ -45,8 +45,8 @@ rail_back = gpd.read_file(input_.rail_back)
 rail_forth = gpd.read_file(input_.rail_forth)
 
 # Local Parameters
-do_parse = False
-save = False
+do_parse = True
+save = True
 do_trace = False
 columns = ['timestamp', 'lon', 'lat', 'alt']    # Extract only wnated paramters
 
@@ -57,7 +57,7 @@ columns = ['timestamp', 'lon', 'lat', 'alt']    # Extract only wnated paramters
 # Load Xsens Data
 def parse(out_dir: str, save: bool):
     """Parse and return df. if save=True save ''.txt into ''.snema data."""
-    # TODO: replace range(10) by range number of .text files in folder
+    # TODO: replace range(11) by range number of .text files in folder
     print('\n\n')
     for _n in range(11):
         _num = str(_n).zfill(2)
@@ -76,7 +76,7 @@ def parse(out_dir: str, save: bool):
 
 def load():
     """Load xsens.snmea files into one single dataframe."""
-    # TODO: replace range(10) by range number of .text files in folder
+    # TODO: replace range(11) by range number of .text files in folder
     print('\n\n')
     for _n in range(11):
         _num = str(_n).zfill(2)
@@ -103,6 +103,7 @@ if do_parse:
 df, valid = load()
 
 # Change time format
+print('Changing timestamp format')
 df['timestamp'] = df['timestamp'].map(lambda x: tt.utcrcf3339(str(x)))
 
 # OPTIMIZE: very very slow process because HUUuuge file size
@@ -113,7 +114,6 @@ if do_trace:
 # =============================================================================
 # Xsens: Exploratory analysis
 # =============================================================================
-
 # print('Plotting xsens trace')
 # plot_trace(rail_shp_path=rail_forth, shp_path=shpFileXsens,
 #            receiver_name='xsens', df=df)
@@ -135,9 +135,7 @@ df5b, _ = theo_df(input_.fileTheo5b, columns)
 # Xsens Precision (A): Theodolites
 # =============================================================================
 # Get distance from thedolites shape LINE
-df_sync = tt.sync(df, df5a,
-                  time_format1='%Y-%m-%dT%H:%M:%S.%fZ',
-                  time_format2='%Y-%m-%dT%H:%M:%S.%fZ')
+df_sync = tt.sync(df, df5a)
 
 # Reset Index
 df_sync = df_sync[~df_sync['timestamp'].isna()].reset_index()

@@ -9,6 +9,7 @@ import glob
 
 folder1 = 'C:\\SwisstopoMobility\\Analyse\\DataBase/**/*.results'
 folder = 'D:\\2021/**/*.results'
+folder2 = './DataBase/**/*results'
 
 files = glob.glob(, recursive=True)
 

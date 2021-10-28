@@ -4,7 +4,6 @@
 
 
 # Standard packages
-import pandas as pd
 import geopandas as gpd
 from tqdm import tqdm
 
@@ -39,7 +38,7 @@ class GetGnssError:
         # ----------------------------------------------------------------
         # Import NMEA as dataframe
         # ----------------------------------------------------------------
-        print('Data frame is uploading: ', self.filename)
+        print('\nData frame is uploading: ', self.filename)
         df_full, valid = nmea_df(self.filename)
 
         # ----------------------------------------------------------------
@@ -68,11 +67,13 @@ class GetGnssError:
         # Loop over each track
         loop = tqdm(total=100, position=0, desc='Calculating distances')
         for track in track_index:
-            df = gl.err2rail(df_full[track[0]:track[1]],
-                             self.rail_back, self.rail_forth)
+            df, empty = gl.err2rail(df_full[track[0]:track[1]],
+                                    self.rail_back, self.rail_forth)
             # Remove unsafe area
-            df = gl.rmv_unsafe_points(df)
-            gl.save_track(df, self.filename)
+            if not empty:
+                df = gl.rmv_unsafe_points(df)
+                if not df.empty:
+                    gl.save_track(df, self.filename)
             loop.update(1)
         loop.close()
 
@@ -101,7 +102,7 @@ class Batch:
                 root, extension = os.path.splitext(entry.path)
 
                 if extension == '.snmea':
-                    print(f'File that is parsing {os.path.basename(entry)}: ')
+                    # print(f'File that is parsing {os.path.basename(entry)}: ')
                     tracks = GetGnssError(entry.path)
                     tracks.main()
 
@@ -110,7 +111,6 @@ app = gui.Interface()
 app.title('Parse UBX messages')
 app.mainloop()
 filepath = app.output()
-# filepath = 'C:/SwisstopoMobility/Analyse/DataBase/2021/05_May/18'
 
 # Executre once for the selcted file
 if os.path.isfile(filepath):
