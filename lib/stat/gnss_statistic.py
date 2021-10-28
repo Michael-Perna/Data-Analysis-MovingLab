@@ -31,16 +31,14 @@ class Statistic:
         # ---------------------------------------------------------------------
         # Set Timestamp as dataframe index
         # ---------------------------------------------------------------------
-        df = df.set_index(pd.to_datetime(df['timestamp']))
+        # df = df.set_index(pd.to_datetime(df['timestamp']))
 
         # ---------------------------------------------------------------------
         # CLEAN DATA FROM DATA OUT OF REFERENCE
         # ---------------------------------------------------------------------
         for bad_day in global_.bad_days:
-            try:
-                df = df.drop(df.loc[bad_day].index)
-            except:
-                pass
+            df = df.drop(df.loc[bad_day].index)
+
         # ---------------------------------------------------------------------
         # Time Statistic
         # ---------------------------------------------------------------------
@@ -95,7 +93,7 @@ class Statistic:
 
     def rmv_bad_days(self, df):
         """Ignore days where the tram took paths outside the reference."""
-        for bad_day in input_.bad_days:
+        for bad_day in global_.bad_days:
             df = df.drop(df.loc[bad_day].index)
         return df
 
@@ -111,7 +109,8 @@ class Statistic:
         # Plot Accuracy Histogram
         if do_plot:
             print('Plot Accuracy Distance')
-            plot.plotHistAcc(dist, bins, weights, CDF, quantile, self.receiver)
+            plot.plotHistAcc(dist, bins, weights, CDF, quantile, self.receiver,
+                             do_xlim=True)
         return quantile
 
     def continuity(self, df):
@@ -132,6 +131,7 @@ class Statistic:
         return posMode, posDist
 
     def spatial_analysis(self, df, lateral_err):
+        """Do simple spatial Analysis."""
         df = df[(df['dist'] > lateral_err)]
         fig, ax = plt.subplots()
         df.reset_index(drop=True)

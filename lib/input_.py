@@ -11,17 +11,17 @@ database = './DataBase'
 results = './res/data/'
 
 # Zones
-open_sky = '.maps/areas_of_interest/zone5.shp'
-city_NS = 'maps/areas_of_interest/zone2.shp'
-city_EW = '.maps/areas_of_interestzone3.shp'
-old_city = '.maps/areas_of_interest/zone1.shp'
-peripheric = '.maps/areas_of_interest/zone4.shp'
+open_sky = './maps/areas_of_interest/zone5.shp'
+city_NS = './maps/areas_of_interest/zone2.shp'
+city_EW = './maps/areas_of_interest/zone3.shp'
+old_city = './maps/areas_of_interest/zone1.shp'
+peripheric = './maps/areas_of_interest/zone4.shp'
 
-zone_dict = {open_sky: 'open_sky',
-             city_NS: 'city_NS',
-             city_EW: 'city_EW',
-             old_city: 'old_city',
-             peripheric: 'peripheric'}
+zone_dict = {'open_sky': open_sky,
+             'city_NS': city_NS,
+             'city_EW': city_EW,
+             'old_city': old_city,
+             'peripheric': peripheric}
 
 # Lines of references
 rail_forth = './maps/railways/foward_track_adjusted.shp'

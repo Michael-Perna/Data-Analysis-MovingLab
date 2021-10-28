@@ -407,9 +407,10 @@ def mn95_projection(df: object, longitude='lon', latitude='lat',
                    lat[index].tolist()[0],
                    alt[index].tolist()[0]]
             # conversion
+            enh = swiss_projection.wgs84_to_lv95(llh)
             df.iloc[index, [df.columns.get_loc(c)
                             for c in [longitude, latitude, altitude]]]\
-                = swiss_projection.wgs84_to_lv95(llh)
+                = enh
 
             if std:
                 # -------------------------------------------------------------
@@ -417,8 +418,7 @@ def mn95_projection(df: object, longitude='lon', latitude='lat',
                 # -------------------------------------------------------------
                 llh1 = sum_std_pt(df, llh, index)
 
-                enh1 = swiss_projection.wgs84_itrf14_to_lv95(llh1,
-                                                             [dx, dy, dz])
+                enh1 = swiss_projection.wgs84_to_lv95(llh1)
 
                 df.iloc[index, [df.columns.get_loc(c)
                                 for c in [stdLong, stdLat, stdAlt]]]\

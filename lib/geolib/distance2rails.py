@@ -265,7 +265,7 @@ def err2rail(df: object, rail_back: object, rail_forth: object):
     df = df.reset_index(drop=True)
 
     # skip csv with less than one epoch
-    if df.empty or len(df) <= 1:
+    if df.empty or len(df) <= 2:
         pass
 
     # -------------------------------------------------------------------------
@@ -306,7 +306,7 @@ def err2rail(df: object, rail_back: object, rail_forth: object):
         df['SxTram'] = Sx
         df['alpha'] = alpha
         df['dist'] = dist
-        return df
+        return df, False
     elif track_type == 'backward':
         for index, row in df.iterrows():
             if not math.isnan(row['geometry'].x) \
@@ -322,9 +322,11 @@ def err2rail(df: object, rail_back: object, rail_forth: object):
         df['SxTram'] = Sx
         df['alpha'] = alpha
         df['dist'] = dist
-        return df
+        return df, False
     elif track_type == 'too small':
-        df = []
-        return df
+        empty = True
+        return df, empty
     else:
+        empty = True
         print('there is a problem')
+        return df, empty

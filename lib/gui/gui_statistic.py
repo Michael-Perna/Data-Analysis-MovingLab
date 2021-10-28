@@ -6,9 +6,13 @@ Created on Tue Aug 24 14:29:28 2021.
 """
 
 from tkinter.filedialog import askdirectory
+from tkinter.filedialog import askopenfilename
 from tkinter.filedialog import Radiobutton
 import tkinter as tk
 import sys
+
+# locals packages
+from lib import input_
 
 
 class Interface(tk.Tk):
@@ -34,8 +38,10 @@ class Interface(tk.Tk):
                                     bg='white', padx=40, pady=60)
 
         # Frame 1: Buttons
-        self.button2 = tk.Button(self.frame1, text='Browse Folder', width=25,
-                                 command=lambda: self.open_folder())
+        self.button1 = tk.Button(self.frame1, text='Browse DataBase Folder',
+                                 width=25, command=lambda: self.open_folder())
+        self.button2 = tk.Button(self.frame1, text='Browse Results Folder',
+                                 width=25, command=lambda: self.open_folder2())
 
         # Subframe: frame2
         self.frame2 = tk.LabelFrame(self,
@@ -97,6 +103,7 @@ class Interface(tk.Tk):
         self.frame3.pack(pady=10)
 
         # Pack Buttons
+        self.button1.pack()
         self.button2.pack()
         self.radio0.pack()
         self.radio1.pack()
@@ -108,9 +115,24 @@ class Interface(tk.Tk):
         self.radio_7.pack()
 
     def open_folder(self):
-        self.filename = askdirectory(initialdir="./DataBase",
+        self.filename = askdirectory(initialdir=input_.database,
                                      title="Choose a folder."
                                      )
+        self.destroy()
+
+    def open_folder2(self):
+        self.filename = askdirectory(initialdir=input_.results,
+                                     title="Choose a folder."
+                                     )
+        self.destroy()
+
+    def open_file(self):
+        self.filename = askopenfilename(
+            initialdir=input_.results,
+            filetypes=(('SNMEA file', '*.csv'),
+                       ("All Files", "*.*")),
+            title="Choose a file."
+        )
         self.destroy()
 
     def selection(self):

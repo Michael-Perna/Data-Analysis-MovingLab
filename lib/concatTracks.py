@@ -5,12 +5,11 @@ Created on Tue Dec  8 13:34:54 2020.
 @author: Michael
 """
 
-# Import standard modules$
-import errno
+# Import standard modules
+import pandas as pd
 import os
 
 # Import local modules
-from lib import gui_concatTracks as gui
 from lib import geolib as gl
 from lib import result_df
 from lib import input_
@@ -44,7 +43,7 @@ class Concat():
         """Scan self.folder name directory and return a list."""
         for entry in os.scandir(self.foldername):
             if os.path.isdir(entry.path):
-                self.foldername = entry
+                self.foldername = entry.path
                 self.scanDir()
 
             if os.path.isfile(entry.path):
@@ -61,6 +60,10 @@ class Concat():
     def main(self):
 
         self.scanDir()
+
+        # Dataframe output initialization
+        df_full = pd.DataFrame()
+
         for file in self.files:
             if self.save_csv:
 
@@ -82,10 +85,8 @@ class Concat():
                 df.to_csv(self.outfile, sep=',', na_rep='',
                           columns=self.columns, header=False, index=False,
                           line_terminator='\n')
-            return df
+                self.outfile.close()
 
-
-# folder_name = './DataBase'
-# receiver_name = 'sapcorda'
-# zone = input_.city_NS
-# df = Concat(folder_name, receiver_name, zone, save_csv=True).main()
+            # Concat dataframe
+            df_full = df_full.append(df)
+        return df_full

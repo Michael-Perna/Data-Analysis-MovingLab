@@ -24,3 +24,5 @@ from .plot_theo import plotHist
 from .plot_theo import plotHist2
 from .plot_theo import plotShpLine
 from .plot_theo import plotRefLine
+
+from .plot_stat import plotHistAcc

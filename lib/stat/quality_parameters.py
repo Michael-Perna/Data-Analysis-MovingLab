@@ -10,6 +10,8 @@ from tqdm import tqdm
 import pandas as pd
 import numpy as np
 
+from lib.stat import stat_functions as sf
+
 
 def continuity(df, time):
     failEvent = 1
@@ -162,7 +164,7 @@ def posInteg(df_rf):
     corrDifAge_100 = np.corrcoef(
         df_rf_wrong1.difAge, df_rf_wrong1.dist)   # No
 
-    dist, bins, weights, CDF, quantile = _pdf_cdf(df_rf)
+    dist, bins, weights, CDF, quantile = sf.pdf_cdf(df_rf)
 
     integrity = {
 

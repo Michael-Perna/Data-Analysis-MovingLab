@@ -146,7 +146,7 @@ def classify_track(df):
     # remove nan position
     small_df = df.dropna(subset=['lat', 'lon']).reset_index(drop=False)
 
-    if small_df.empty or len(small_df) <= 1:
+    if small_df.empty or len(small_df) <= 5:
         return 'too small'
     # look at first longitude
     first = small_df['lon'].iloc[1]
@@ -159,6 +159,6 @@ def classify_track(df):
     elif first < last:
         track = 'foward'
     else:
-        print('Huston we have a problem!')
+        print('Huston we have a problem inside classify_track()!')
         return 'problem'
     return track
