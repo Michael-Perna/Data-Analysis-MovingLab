@@ -7,8 +7,13 @@ Data-Analysis-MovingLab analyses and compare the GNSS data generates by three di
 The MovingLab was mounted on a tram of the line 9 in Geneva and collected data for many months.
 
 
-# Description 
-## Tools 
+# Description
+## Important Folders
+- **Data** contains the observations of the theodolite campaign, the xsens IMU and the GNSS receivers data test on the swisstopo roof. 
+- **DataBase** contains all the observations taken by the GNSS receiveres onboard of the MovingLab. Which included the raw NMEA (in .txt format) and the parsed and processed data (.SNMEA & .results format). The observations are structure in a database which separate the data for each day). 
+- **res** contains the analysed GNSS data for each receiver and zone of intrest (in .csv format, easly to import in QGIS).
+
+## Function 
 ### **rmv-files-by-format.py**
 Used to clean the DataBase repository from ghosts files of previous computations (GUI not available)
 ### **unzip_batch.py**
